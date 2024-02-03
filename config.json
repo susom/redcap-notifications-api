@@ -154,22 +154,7 @@
             "type": "note"
         }
     ],
-    "crons": [
-        {
-            "cron_name": "redcap_notifs_refresh_queue",
-            "cron_description": "This cron will run every N seconds to process notif payload refresh requests.",
-            "method": "processJobQueue",
-            "cron_frequency": "60",
-            "cron_max_run_time": "300"
-        },
-        {
-            "cron_name": "redcap_notifs_queue_cleanup",
-            "cron_description": "This cron will run every 24 minutes (max php session time) to delete queued jobs.",
-            "method": "clearJobQueue",
-            "cron_frequency": "1440",
-            "cron_max_run_time": "300"
-        }
-    ],
+    "crons": [],
     "compatibility": {
         "php-version-min": "",
         "php-version-max": "",
