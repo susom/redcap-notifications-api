@@ -25,8 +25,11 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
 
     const USER_ROLE = 'USER_ROLE';
 
+    const PROD = 'PROD';
+
+    const DEV = 'DEV';
     const DESIGNATED_CONTACT = 'DESIGNATED_CONTACT';
-    const PROJECT_SPECIFIC = 'PROJECT_SPECIFIC';
+    const ALL_USERS = 'ALL_USERS';
 
 
     private $SURVEY_USER = '[survey respondent]';
@@ -49,6 +52,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
      * @param $response_id
      * @param $repeat_instance
      * @return void
+     * @throws \Exception
      */
     function redcap_save_record($project_id, $record, $instrument, $event_id, $group_id,
                                 $survey_hash, $response_id, $repeat_instance)
@@ -85,19 +89,65 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
             if (!empty($response['errors'])) {
                 $this->emError("Could not update record with last update time " . json_encode($saveData));
             } else {
-
+                $this->cacheNotification($saveData);
             }
         }
     }
 
-    private function cacheNotification($record)
+    /**
+     * @throws \Exception
+     */
+    public function  cacheNotification($record): void
     {
+        try {
+            $notificationId = $record[\REDCap::getRecordIdField()];
+            $allProjects = false;
+            $pid = null;
+            $userRole = null;
+            $isDesignatedContact = false;
 
+            // if project status defined otherwise will be for both prod and dev
+            $isProd = $record['project_status'];
+
+            // determine nitification user role.
+            if ($record['note_user_types'] == 'dc') {
+                $isDesignatedContact = true;
+            }
+
+            // if pid/s defined  loop over  listed PID
+            if ($record['note_project_id']) {
+                $pids = explode(',', $record['note_project_id']);
+            } else {
+                $allProjects = true;
+            }
+
+            // if notifications for specific projects loop over
+            if (!$allProjects) {
+                foreach ($pids as $pid) {
+                    if ($record['note_user_types'] == 'admin') {
+                        $userRole = $this->getProjectAdminRole($pid);
+                    }
+                    $key = self::generateKey($notificationId, false, $pid, $isProd, $userRole, $isDesignatedContact);
+                    $this->getCacheClient()->setKey($key, json_encode($record));
+                }
+            } else {
+                $key = self::generateKey($notificationId, true, $pid, $isProd, $userRole, $isDesignatedContact);
+                $this->getCacheClient()->setKey($key, json_encode($record));
+            }
+            \REDCap::logEvent("Notification '$notificationId' was cached correctly.");
+        } catch (\Exception $e) {
+            echo $e->getMessage();
+            \REDCap::logEvent('Exeption:: Cant create notification cache', $e->getMessage());
+        }
     }
 
-    public function determineKey($record)
-    {
 
+    public function getProjectAdminRole($pid)
+    {
+        $sql = sprintf("SELECT unique_role_name from redcap_user_roles WHERE project_id = %d", db_escape($pid));
+        $q = db_query($sql);
+        $row = db_fetch_assoc($q);
+        return $row['unique_role_name'];
     }
 
     /**
@@ -121,36 +171,68 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
 
     public function parseKey($key)
     {
-        // TODO
+        $parts = explode('_', $key);
+        $parsed = array();
+        // first part should be all projects or pid
+        if (self::ALL_PROJECTS == $parts[0] or is_numeric($parts[0])) {
+            $parsed['type'] = $parts[0];
+        } else {
+            throw new \Exception("Unknown notification type $key");
+        }
+
+        // second part has to be prod or dev
+        if (in_array($parts[1], [self::DEV, self::PROD])) {
+            $parsed['status'] = $parts[1];
+        } else {
+            throw new \Exception("Unknown notification Prod/dev $key");
+        }
+
+        // third part has to be designated contact, all users or defined user role.
+        if (in_array($parts[2], [self::DESIGNATED_CONTACT, self::ALL_USERS]) or is_string($parts[2])) {
+            $parsed['role'] = $parts[2];
+        } else {
+            throw new \Exception("Unknown notification role $key");
+        }
+
+        // third part has to be designated contact, all users or defined user role.
+        if ($parts[3]) {
+            $parsed['notification_id'] = $parts[3];
+        } else {
+            throw new \Exception("Missing notification id $key");
+        }
+
+        return $parsed;
     }
-    public static function generateKey($notificationId, $system = false, $allProjects = false, $pid = null, $userRole = null, $isDesignatedContact = false)
+
+    public static function generateKey($notificationId, $allProjects = false, $pid = null, $isProd = false, $userRole = null, $isDesignatedContact = false)
     {
         $key = '';
-        if ($system or $allProjects) {
-            if ($system) {
-                $key .= self::SYSTEM . '_';
-            }
-            if ($allProjects) {
-                $key .= self::ALL_PROJECTS . '_';
-                if ($userRole) {
-                    $key .= '_' . self::USER_ROLE . '_' . $userRole . '_';
-                } elseif ($isDesignatedContact) {
-                    $key .= '_' . self::DESIGNATED_CONTACT . '_';
-                }
-            }
+        if ($allProjects) {
+            $key .= self::ALL_PROJECTS . '_';
+
         } elseif ($pid) {
-            if ($userRole) {
-                $key .= $pid . '_' . self::USER_ROLE . '_' . $userRole . '_';
-            } elseif ($isDesignatedContact) {
-                $key .= $pid . '_' . self::DESIGNATED_CONTACT . '_';
-            }
             $key .= $pid . '_';
+        } else {
+            throw new \Exception("Cant build Notification Key for '$notificationId'");
         }
+        if ($isProd) {
+            $key .= self::PROD . '_';
+        } else {
+            $key .= self::DEV . '_';
+        }
+        if ($userRole) {
+            $key .= $userRole . '_';
+        } elseif ($isDesignatedContact) {
+            $key .= self::DESIGNATED_CONTACT . '_';
+        } else {
+            $key .= self::ALL_USERS . '_';
+        }
+
         return $key . $notificationId;
     }
 
     /**
-     * @return mixed
+     * @return \Stanford\RedcapNotificationsAPI\Database or \Stanford\RedcapNotificationsAPI\Redis
      */
     public function getCacheClient()
     {
