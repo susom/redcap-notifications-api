@@ -18,38 +18,37 @@ class Redis implements CacheInterface
         ]);
     }
 
-    public function setKey($key, $value)
+    public function setKey($key, $value): \Predis\Response\Status
     {
         return $this->client->set($key, $value);
     }
 
-    public function setKeys(array $arr)
+    public function setKeys(array $arr): \Predis\Response\Status
     {
         return $this->client->mset($arr);
     }
 
-    public function getKey($key)
+    public function getKey($key): ?string
     {
         return $this->client->get($key);
     }
 
-    public function getKeys(array $arr)
+    public function getKeys(array $arr): array
     {
         return $this->client->mget($arr);
     }
 
-
-    public function deleteKey($key)
+    public function deleteKey($key): int
     {
         return $this->client->del($key);
     }
 
-    public function deleteKeys(array $arr)
+    public function deleteKeys(array $arr): int
     {
         return $this->client->del($arr);
     }
 
-    public function listKeys(string $pattern)
+    public function listKeys(string $pattern): array
     {
         return $this->client->keys($pattern);
     }
@@ -57,5 +56,10 @@ class Redis implements CacheInterface
     public function expireKey($key)
     {
         // TODO: Implement expireKey() method.
+    }
+
+    public function info(): array
+    {
+        return $this->client->info();
     }
 }
