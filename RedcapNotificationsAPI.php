@@ -29,7 +29,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
 
     const DEV = 'DEV';
     const DESIGNATED_CONTACT = 'DESIGNATED_CONTACT';
-    const ALL_USERS = 'ALL_USERS';
+    const ALLUSERS = 'ALLUSERS';
 
 
     private $SURVEY_USER = '[survey respondent]';
@@ -58,46 +58,44 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
                                 $survey_hash, $response_id, $repeat_instance)
     {
         // If this is the notification project, update the latest update date
-        $notification_pid = $this->getSystemProjectIDs('notification-pid');
-        if ($notification_pid == $project_id and !empty($record)) {
 
-            $last_update_ts = (new DateTime())->format('Y-m-d H:i:s');
+        $last_update_ts = (new DateTime())->format('Y-m-d H:i:s');
 
-            $params = array(
-                "records" => $record,
-                "return_format" => "json",
-                "fields" => array("force_refresh")
-            );
-            $json = REDCap::getData($params);
-            $response = json_decode($json, true);
+        $params = array(
+            "records" => [$record],
+            "return_format" => "json",
+            "project_id" => $project_id
+        );
+        $json = REDCap::getData($params);
+        $json = json_decode($json, true);
 
-            if (!empty($response) && $response = current($response)) {
-                $this->emDebug("forcer refresh get data?", $response);
-                if ($response["force_refresh___1"] == "1") {
-                    $this->setForceRefreshSetting($record, $last_update_ts);
-                }
-            }
-
-            // Save the last record update date/time
-            $saveData = array(
-                array(
-                    "record_id" => $record,
-                    "note_last_update_time" => $last_update_ts
-                )
-            );
-            $response = REDCap::saveData('json', json_encode($saveData), 'overwrite');
-            if (!empty($response['errors'])) {
-                $this->emError("Could not update record with last update time " . json_encode($saveData));
-            } else {
-                $this->cacheNotification($saveData);
+        if (!empty($response) && $response = current($response)) {
+            $this->emDebug("forcer refresh get data?", $response);
+            if ($response["force_refresh___1"] == "1") {
+                $this->setForceRefreshSetting($record, $last_update_ts);
             }
         }
+
+        // Save the last record update date/time
+        $saveData = array(
+            array(
+                "record_id" => $record,
+                "note_last_update_time" => $last_update_ts
+            )
+        );
+        $response = REDCap::saveData('json', json_encode($saveData), 'overwrite');
+        if (!empty($response['errors'])) {
+            $this->emError("Could not update record with last update time " . json_encode($saveData));
+        } else {
+            $this->cacheNotification($json[0]);
+        }
+
     }
 
     /**
      * @throws \Exception
      */
-    public function  cacheNotification($record): void
+    public function cacheNotification($record): void
     {
         try {
             $notificationId = $record[\REDCap::getRecordIdField()];
@@ -169,7 +167,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
         }
     }
 
-    public function parseKey($key)
+    public static function parseKey($key)
     {
         $parts = explode('_', $key);
         $parsed = array();
@@ -188,7 +186,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
         }
 
         // third part has to be designated contact, all users or defined user role.
-        if (in_array($parts[2], [self::DESIGNATED_CONTACT, self::ALL_USERS]) or is_string($parts[2])) {
+        if (in_array($parts[2], [self::DESIGNATED_CONTACT, self::ALLUSERS]) or is_string($parts[2])) {
             $parsed['role'] = $parts[2];
         } else {
             throw new \Exception("Unknown notification role $key");
@@ -225,7 +223,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
         } elseif ($isDesignatedContact) {
             $key .= self::DESIGNATED_CONTACT . '_';
         } else {
-            $key .= self::ALL_USERS . '_';
+            $key .= self::ALLUSERS . '_';
         }
 
         return $key . $notificationId;
