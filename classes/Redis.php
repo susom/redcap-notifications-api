@@ -20,8 +20,9 @@ class Redis implements CacheInterface
 
     public function setKey($key, $value): void
     {
-        //Grab notification ID from pre-generated key
         $explode = explode("_", $key);
+
+        //Grab notification ID from pre-generated key
         $notification_id = $explode[3];
 
         //Notification ID will be hashed in redis, remove
@@ -31,9 +32,8 @@ class Redis implements CacheInterface
         //Add key as PID_[PROD/DEV]_[ROLE] as key, setting hash as notification ID
         $this->client->hset($storage_key, $notification_id, $value);
 
-        //Keep track of corresponding keyset for performance later in getKEY
+        //Keep track of corresponding keyset (notification_id) for performance later
         $this->client->sadd("keyset_".$storage_key, [$notification_id]);
-
     }
 
     public function setKeys(array $arr): \Predis\Response\Status
@@ -54,14 +54,17 @@ class Redis implements CacheInterface
     }
 
     /**
+     * Expecting key in the format PID_[PROD/DEV]_ROLE
      * @param $key
      * @return void
      */
     public function getAllHashed($key): array
     {
-        // Expecting key in the format PID_[PROD/DEV]_ROLE
+        // Grab all notification_ids from corresponding keyset
         $set = $this->client->smembers("keyset_".$key);
         $arr = [];
+
+        // Iterate through, grabbing each value
         foreach($set as $hash)
             $arr[] = $this->client->hget($key, $hash);
         return $arr;
