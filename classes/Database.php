@@ -11,7 +11,7 @@ class Database implements CacheInterface
         $prefix_directory = (new RedcapNotificationsAPI)->PREFIX;
         $type = $parsedKey['type'] != RedcapNotificationsAPI::ALL_PROJECTS ?$parsedKey['type']:null;
         $sql = sprintf("INSERT INTO redcap_external_modules_log (timestamp, ip, external_module_id, project_id, record, message) VALUES (now(), '%s', (SELECT external_module_id FROM redcap_external_modules WHERE directory_prefix =  '%s'), '%s', '%s', '%s')", $_SERVER['REMOTE_ADDR'], $prefix_directory, $type, $key, $value);
-        $q = db_query($sql);
+        db_query($sql);
     }
 
     public function getKey($key)
