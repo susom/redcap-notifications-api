@@ -8,6 +8,7 @@ interface CacheInterface
 
     public function setKeys(array $arr);
 
+    public function searchKey($phrase);
     public function getKey($key);
 
     public function getKeys(array $arr);

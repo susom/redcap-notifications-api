@@ -33,6 +33,11 @@ class Redis implements CacheInterface
         return $this->client->get($key);
     }
 
+    public function searchKey($phrase)
+    {
+        // TODO: Implement searchKey() method.
+    }
+
     public function getKeys(array $arr)
     {
         return $this->client->mget($arr);
