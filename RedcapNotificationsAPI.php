@@ -103,9 +103,12 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
             $pid = null;
             $userRole = null;
             $isDesignatedContact = false;
-
+            $isProd = null;
             // if project status defined otherwise will be for both prod and dev
-            $isProd = $record['project_status'];
+            if(!is_null($record['project_status'])){
+                $isProd = $record['project_status'];
+            }
+
 
             // determine nitification user role.
             if ($record['note_user_types'] == 'dc') {
@@ -178,8 +181,8 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
             throw new \Exception("Unknown notification type $key");
         }
 
-        // second part has to be prod or dev
-        if (in_array($parts[1], [self::DEV, self::PROD])) {
+        // second part has to be prod or dev or both PRODDEV
+        if (in_array($parts[1], [self::DEV, self::PROD, self::PROD . self::DEV])) {
             $parsed['status'] = $parts[1];
         } else {
             throw new \Exception("Unknown notification Prod/dev $key");
@@ -213,7 +216,11 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
         } else {
             throw new \Exception("Cant build Notification Key for '$notificationId'");
         }
-        if ($isProd) {
+
+        if(is_null($isProd)){
+            $key .= self::PROD . self::DEV . '_';
+        }
+        elseif ($isProd) {
             $key .= self::PROD . '_';
         } else {
             $key .= self::DEV . '_';
