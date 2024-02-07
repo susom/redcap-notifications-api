@@ -242,7 +242,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
     public function getCacheClient()
     {
         if (!$this->cacheClient) {
-            $this->setCacheClient(CacheFactory::getCacheClient($this->getSystemSetting('redis-host'), $this->getSystemSetting('redis-port')));
+            $this->setCacheClient(CacheFactory::getCacheClient($this->getSystemSetting('redis-host'), $this->getSystemSetting('redis-port'), $this->getUrl('/lua_scripts/getHashedValues.lua')));
         }
         return $this->cacheClient;
     }
