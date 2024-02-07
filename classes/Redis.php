@@ -1,6 +1,7 @@
 <?php
 
 namespace Stanford\RedcapNotificationsAPI;
+/** @var \Stanford\RedcapNotificationsAPI\RedcapNotificationsAPI $module*/
 
 use Predis\Client;
 
@@ -8,21 +9,23 @@ class Redis implements CacheInterface
 {
 
     private Client $client;
+    private string $luaPath;
 
-    public function __construct($redisHost, $redisPort)
+    public function __construct($redisHost, $redisPort, $luaPath)
     {
         $this->client = new \Predis\Client([
             'host' => $redisHost,
             'port' => $redisPort,
             'connections' => 'relay' //For performance improvements
         ]);
+
+        $this->luaPath=$luaPath;
     }
 
     public function setKey($key, $value): void
     {
-        $explode = explode("_", $key);
-
         //Grab notification ID from pre-generated key
+        $explode = explode("_", $key);
         $notification_id = $explode[3];
 
         //Notification ID will be hashed in redis, remove
@@ -32,14 +35,14 @@ class Redis implements CacheInterface
         //Add key as PID_[PROD/DEV]_[ROLE] as key, setting hash as notification ID
         $this->client->hset($storage_key, $notification_id, $value);
 
-        //Keep track of corresponding keyset (notification_id) for performance later
-        $this->client->sadd("keyset_".$storage_key, [$notification_id]);
     }
 
-    public function setKeys(array $arr): \Predis\Response\Status
+    public function setKeys(array $arr): void
     {
 //        TODO
-        return $this->client->mset($arr);
+        $ret = [];
+        foreach($arr as $key => $value)
+            $this->setKey($key, $value);
     }
 
     public function getKey($key): ?string
@@ -54,20 +57,21 @@ class Redis implements CacheInterface
     }
 
     /**
-     * Expecting key in the format PID_[PROD/DEV]_ROLE
      * @param $key
      * @return void
      */
-    public function getAllHashed($key): array
+    public function getAllValues($key): array
     {
-        // Grab all notification_ids from corresponding keyset
-        $set = $this->client->smembers("keyset_".$key);
-        $arr = [];
+        // Expecting key in the format PID_[PROD/DEV]_ROLE
+        $explode = explode("_", $key);
+        $notification_id = $explode[3];
 
-        // Iterate through, grabbing each value
-        foreach($set as $hash)
-            $arr[] = $this->client->hget($key, $hash);
-        return $arr;
+        unset($explode[3]);
+        $storage_key = implode("_", $explode);
+
+        $values = $this->getHashedValues($this->luaPath, 1, $storage_key, 0);
+        return $values[1] ?? [];
+
     }
 
     public function searchKey($phrase)
@@ -78,17 +82,29 @@ class Redis implements CacheInterface
     public function getKeys(array $arr): array
     {
 //        TODO
+
         return $this->client->mget($arr);
     }
 
     public function deleteKey($key): int
     {
-        return $this->client->del($key);
+        //Grab notification ID from pre-generated key
+        $explode = explode("_", $key);
+        $notification_id = $explode[3];
+
+        //Notification ID will be hashed in redis, remove
+        unset($explode[3]);
+        $storage_key = implode("_", $explode);
+
+        return $this->client->del($storage_key);
     }
 
     public function deleteKeys(array $arr): int
     {
-        return $this->client->del($arr);
+        foreach($arr as $key)
+            if(!$this->deleteKey($key))
+                return 0;
+        return 1;
     }
 
     public function listKeys(string $pattern): array
@@ -124,5 +140,9 @@ class Redis implements CacheInterface
     public function info(): array
     {
         return $this->client->info();
+    }
+
+    public function getHashedValues(string $path, int $num_keys, string $key, int $cursor){
+        return $this->client->eval(file_get_contents($path), $num_keys, $key, $cursor);
     }
 }

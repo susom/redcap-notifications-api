@@ -7,42 +7,48 @@ use \Predis\Collection\Iterator;
 try {
 //    Create new client
     $factory = new \Stanford\RedcapNotificationsAPI\CacheFactory();
-    $client = $factory->getCacheClient( 'redis', '6379');
+    $path = ($module->getUrl('/lua_scripts/getHashedValues.lua'));
+    $client = $factory->getCacheClient( 'redis', '6379', $path);
 
-    echo "Set Key '1_prod_all_2' => '{data:value}' also setting keyset ";
-    $a = $client->setKey('1_prod_all_2','{data:value}');
+
+    echo "Set Key '1_prod_all_1' => '{data:value}'";
+    echo "        ";
+    echo "Set Key '1_prod_all_2' => '{data:secondhashedvalue}'";
+    $a = $client->setKey('1_prod_all_1','{data:value}');
+    $a = $client->setKey('1_prod_all_2','{data:secondhashedvalue}');
     var_dump($client->listKeys("*"));
 
-    echo "Set Keys `key2, key3`";
-    $b = $client->setKeys(['key2' =>'value2', 'key3' => 'value3']);
+    echo "Set Keys `1_prod_all_2, 1_prod_all_3`";
+    $b = $client->setKeys(['2_prod_all_1' =>'{data:value2}', '3_prod_all_1' => '{data:value3}']);
     var_dump($client->listKeys("*"));
 
-    echo "Get Key '1_prod_all_2'";
-    $c = $client->getKey("1_prod_all_2");
-    var_dump($c);
+    echo "Get Key '1_prod_all_1' and '1_prod_all_2'";
+    $c = $client->getKey("1_prod_all_1");
+    $c2 = $client->getKey("1_prod_all_2");
+    var_dump($c, $c2);
 
-    echo "Get Keys `key2, key3`";
-    $d = $client->getKeys(["key2", "key3"]);
+    echo "Get Keys `2_prod_all_1, 2_prod_all_3`";
+    $d = $client->getKeys(["2_prod_all_1", "3_prod_all_1"]);
     var_dump($d);
 
-    $pattern = 'key*';
-    $output = "";
-    echo "Testing Scan for pattern key*";
-    foreach (new Iterator\Keyspace($client->getRedisClient(), $pattern) as $key) {
-        $output .= "$key \n";
-    }
-    var_dump($output);
+//    $pattern = 'key*';
+//    $output = "";
+//    echo "Testing Scan for pattern key*";
+//    foreach (new Iterator\Keyspace($client->getRedisClient(), $pattern) as $key) {
+//        $output .= "$key \n";
+//    }
+//    var_dump($output);
 
-    echo "Testing getAllHashed";
-    var_dump($client->getAllHashed("1_prod_all"));
+    echo "Testing getAllValues";
+    var_dump($client->getAllValues("1_prod_all_1"));
 
 
     echo "Delete Key `1_prod_all_1`";
-    $e = $client->deleteKey("1_prod_all");
+    $e = $client->deleteKey("1_prod_all_1");
     var_dump($client->listKeys("*"));
 
-    echo "Delete Keys `key2, key3, keyset_1_prod_all`";
-    $f = $client->deleteKeys(["key2", "key3", "keyset_1_prod_all"]);
+    echo "Delete Keys `1_prod_all_2, 1_prod_all_3`";
+    $f = $client->deleteKeys(["2_prod_all_1", "3_prod_all_1"]);
     var_dump($client->listKeys("*"));
 
 
