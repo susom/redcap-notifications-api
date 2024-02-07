@@ -21,7 +21,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
     const DEFAULT_NOTIF_REFRESH_TIME_HOUR = 6;
 
     const SYSTEM = 'SYSTEM';
-    const ALL_PROJECTS = 'ALL_PROJECTS';
+    const ALL_PROJECTS = 'GLOBAL';
 
     const USER_ROLE = 'USER_ROLE';
 
@@ -207,10 +207,10 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
 
     public static function generateKey($notificationId, $allProjects = false, $pid = null, $isProd = false, $userRole = null, $isDesignatedContact = false)
     {
+
         $key = '';
         if ($allProjects) {
             $key .= self::ALL_PROJECTS . '_';
-
         } elseif ($pid) {
             $key .= $pid . '_';
         } else {
@@ -225,6 +225,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
         } else {
             $key .= self::DEV . '_';
         }
+
         if ($userRole) {
             $key .= $userRole . '_';
         } elseif ($isDesignatedContact) {
@@ -232,7 +233,6 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
         } else {
             $key .= self::ALLUSERS . '_';
         }
-
         return $key . $notificationId;
     }
 
