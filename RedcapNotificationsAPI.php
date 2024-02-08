@@ -167,7 +167,13 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
         $notifications = array();
         $keys = self::buildCacheKeys($pid, $projectStatus, $isAdmin, self::isUserDesignatedContact($pid));
         foreach ($keys as $key){
-            $notifications[] = $this->getCacheClient()->getKey($key);
+            // TODO we need to find another way otherwise this will be bottleneck
+            if(empty($notifications)){
+                $notifications = $this->getCacheClient()->getKey($key);
+            }else{
+                $notifications = array_merge($this->getCacheClient()->getKey($key), $notifications);
+            }
+
         }
         return $notifications;
     }
@@ -221,14 +227,17 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
     {
         $keys = [];
 
-        // Add Global alerts corresponding to both dev/prod for all users
-        $keys[] = self::ALL_PROJECTS . self::getDelimiter() . self::SERVER_BOTH . self::getDelimiter() . self::ALLUSERS;
 
         // Then get corresponding global keys depending on role
-        $statusPrefix = match ($projectStatus) {
+        $statusPrefix = match ((int)$projectStatus) {
             0 => self::DEV,
             default => self::PROD,
         };
+
+        // Add Global alerts corresponding to both dev/prod for all users
+        $keys[] = self::ALL_PROJECTS . self::getDelimiter() . self::SERVER_BOTH . self::getDelimiter() . self::ALLUSERS;
+        $keys[] = self::ALL_PROJECTS . self::getDelimiter() . $statusPrefix . self::getDelimiter() . self::ALLUSERS;
+
 
         if ($isAdmin) {
             $keys[] = self::ALL_PROJECTS . self::getDelimiter() . self::SERVER_BOTH . self::getDelimiter() . self::ADMIN;
@@ -248,7 +257,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
         // TODO check if Designated Contact EM enabled or not.
         if (defined('USERID')) {
             $user = USERID;
-            $sql = sprintf("SELECT contact_userid FROM designated_contact_selected WHERE contact_userid = %s", db_escape($user));
+            $sql = sprintf("SELECT contact_userid FROM designated_contact_selected WHERE contact_userid = %s and project_id = %s", db_escape($user), $pid);
             $q = db_query($sql);
             return !empty(db_fetch_assoc($q));
         }
@@ -286,7 +295,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
         }
 
         // second part has to be prod or dev or both PRODDEV
-        if (in_array($parts[1], [self::DEV, self::PROD, self::PROD . self::DEV])) {
+        if (in_array($parts[1], [self::DEV, self::PROD, self::SERVER_BOTH])) {
             $parsed['status'] = $parts[1];
         } else {
             throw new \Exception("Unknown notification Prod/dev $key");
