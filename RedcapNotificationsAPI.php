@@ -29,6 +29,8 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
 
     const PROD = 'PROD';
 
+    const SERVER_BOTH = 'PROD:DEV';
+
     const DEV = 'DEV';
     const DESIGNATED_CONTACT = 'DC';
     const ALLUSERS = 'ALLUSERS';
@@ -153,7 +155,14 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
         return $row['unique_role_name'];
     }
 
-    public function getNotifications($pid = null, $projectStatus = 0, $isAdmin = false)
+    /**
+     * Function called by UI EM to fetch all notifications for a particular client
+     * @param $pid
+     * @param $projectStatus
+     * @param $isAdmin
+     * @return array
+     */
+    public function getNotifications($pid = null, $projectStatus = 0, $isAdmin = false): array
     {
         $notifications = array();
         $keys = self::buildCacheKeys($pid, $projectStatus, $isAdmin, self::isUserDesignatedContact($pid));
@@ -164,6 +173,8 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
     }
 
     /**
+     * Build all keys
+     * Executed on behalf of client request
      * @param $pid
      * @param $projectStatus
      * @param $isAdmin
@@ -172,46 +183,61 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
      */
     public static function buildCacheKeys($pid = null, $projectStatus = 0, $isAdmin = false, $isDesignatedContact = false)
     {
-        $keys = array();
-        if ($pid) {
 
-            // Prod & Dev
-            // this will go for all project regardless of status or role. e.g 123_PRODDEV_ALLUSERS
-            $keys[] = $pid . self::getDelimiter() . self::PROD . self::DEV . self::getDelimiter() . self::ALLUSERS;
+        // Grab keys affiliated with GLOBAL settings
+        $keys = (new RedcapNotificationsAPI)->getGlobalKeys($projectStatus, $isAdmin, $isDesignatedContact);
 
+        if ($pid) { // Fetch all project specific keys
+            $keys[] = $pid . self::getDelimiter() . self::SERVER_BOTH . self::getDelimiter() . self::ALLUSERS;
+
+            $projectPrefix = $projectStatus ? self::PROD : self::DEV;
+
+            // Grab prod/dev all users key
+            $keys[] = $pid . self::getDelimiter() . $projectPrefix . self::getDelimiter() . self::ALLUSERS;
+
+            // Get key by admin or dc role
             if ($isAdmin) {
-                $keys[] = $pid . self::getDelimiter() . self::PROD . self::DEV . self::getDelimiter() . self::ADMIN;
+                $keys[] = $pid . self::getDelimiter() . $projectPrefix . self::getDelimiter() . self::ADMIN;
+                $keys[] = $pid . self::getDelimiter() . self::SERVER_BOTH . self::getDelimiter() . self::ADMIN;
             }
 
             if ($isDesignatedContact) {
-                $keys[] = $pid . self::getDelimiter() . self::PROD . self::DEV . self::getDelimiter() . self::DESIGNATED_CONTACT;
+                $keys[] = $pid . self::getDelimiter() . $projectPrefix . self::getDelimiter() . self::DESIGNATED_CONTACT;
+                $keys[] = $pid . self::getDelimiter() . self::SERVER_BOTH . self::getDelimiter() . self::DESIGNATED_CONTACT;
             }
+        }
 
-            // Key for Prod projects
-            if ($projectStatus) {
-                $keys[] = $pid . self::getDelimiter() . self::PROD . self::getDelimiter() . self::ALLUSERS;
+        return $keys;
+    }
 
-                if ($isAdmin) {
-                    $keys[] = $pid . self::getDelimiter() . self::PROD . self::getDelimiter() . self::ADMIN;
-                }
+    /**
+     * Will run on each client request for notification payload
+     * @param $projectStatus
+     * @param $isAdmin
+     * @param $isDesignatedContact
+     * @return array
+     */
+    public function getGlobalKeys($projectStatus, $isAdmin, $isDesignatedContact): array
+    {
+        $keys = [];
 
-                if ($isDesignatedContact) {
-                    $keys[] = $pid . self::getDelimiter() . self::PROD . self::getDelimiter() . self::DESIGNATED_CONTACT;
-                }
-            } else {
+        // Add Global alerts corresponding to both dev/prod for all users
+        $keys[] = self::ALL_PROJECTS . self::getDelimiter() . self::SERVER_BOTH . self::getDelimiter() . self::ALLUSERS;
 
-                // Key for Dev projects
-                $keys[] = $pid . self::getDelimiter() . self::DEV . self::getDelimiter() . self::ALLUSERS;
+        // Then get corresponding global keys depending on role
+        $statusPrefix = match ($projectStatus) {
+            0 => self::DEV,
+            default => self::PROD,
+        };
 
-                if ($isAdmin) {
-                    $keys[] = $pid . self::getDelimiter() . self::DEV . self::getDelimiter() . self::ADMIN;
-                }
+        if ($isAdmin) {
+            $keys[] = self::ALL_PROJECTS . self::getDelimiter() . self::SERVER_BOTH . self::getDelimiter() . self::ADMIN;
+            $keys[] = self::ALL_PROJECTS . self::getDelimiter() . $statusPrefix . self::getDelimiter() . self::ADMIN;
+        }
 
-                if ($isDesignatedContact) {
-                    $keys[] = $pid . self::getDelimiter() . self::DEV . self::getDelimiter() . self::DESIGNATED_CONTACT;
-                }
-            }
-
+        if ($isDesignatedContact) {
+            $keys[] = self::ALL_PROJECTS . self::getDelimiter() . self::SERVER_BOTH . self::getDelimiter() . self::DESIGNATED_CONTACT;
+            $keys[] = self::ALL_PROJECTS . self::getDelimiter() . $statusPrefix . self::getDelimiter() . self::DESIGNATED_CONTACT;
         }
 
         return $keys;
@@ -283,6 +309,17 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
         return $parsed;
     }
 
+    /**
+     * On Notification save record, build the initial cache key
+     * @param $notificationId
+     * @param $allProjects
+     * @param $pid
+     * @param $isProd
+     * @param $userRole
+     * @param $isDesignatedContact
+     * @return string
+     * @throws \Exception
+     */
     public static function generateKey($notificationId, $allProjects = false, $pid = null, $isProd = false, $userRole = null, $isDesignatedContact = false)
     {
 
@@ -296,7 +333,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
         }
 
         if (is_null($isProd)) {
-            $key .= self::PROD . self::DEV . self::getDelimiter();
+            $key .= self::SERVER_BOTH . self::getDelimiter();
         } elseif ($isProd) {
             $key .= self::PROD . self::getDelimiter();
         } else {
@@ -319,7 +356,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
     public function getCacheClient()
     {
         if (!$this->cacheClient) {
-            $this->setCacheClient(CacheFactory::getCacheClient($this->getSystemSetting('redis-host'), $this->getSystemSetting('redis-port'), $this->getUrl('/lua_scripts/getHashedValues.lua')));
+            $this->setCacheClient(CacheFactory::getCacheClient($this->getSystemSetting('redis-host'), $this->getSystemSetting('redis-port'), $this->getUrl('./lua_scripts/getHashedValues.lua')));
         }
         return $this->cacheClient;
     }
