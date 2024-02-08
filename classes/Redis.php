@@ -55,6 +55,11 @@ class Redis implements CacheInterface
             $this->setKey($key, $value);
     }
 
+    /**
+     * Key expected in the following format: PID_[PROD/DEV]_ROLE_ID
+     * @param $key
+     * @return string|null
+     */
     public function getKey($key): ?string
     {
         $explode = explode("_", $key);

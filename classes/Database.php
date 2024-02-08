@@ -34,6 +34,11 @@ class Database implements CacheInterface
         return $row;
     }
 
+    public function getData($key)
+    {
+        self::getKey($key);
+    }
+
     public function searchKey($phrase)
     {
         $sql = sprintf("SELECT * FROM redcap_external_modules_log WHERE record LIKE '%%%s%%'", db_escape($phrase));
