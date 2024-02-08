@@ -25,10 +25,12 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
 
     const USER_ROLE = 'USER_ROLE';
 
+    const ADMIN = 'ADMIN';
+
     const PROD = 'PROD';
 
     const DEV = 'DEV';
-    const DESIGNATED_CONTACT = 'DESIGNATED_CONTACT';
+    const DESIGNATED_CONTACT = 'DC';
     const ALLUSERS = 'ALLUSERS';
 
 
@@ -105,7 +107,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
             $isDesignatedContact = false;
             $isProd = null;
             // if project status defined otherwise will be for both prod and dev
-            if(!is_null($record['project_status'])){
+            if (!is_null($record['project_status']) and $record['project_status'] != '') {
                 $isProd = $record['project_status'];
             }
 
@@ -113,6 +115,8 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
             // determine nitification user role.
             if ($record['note_user_types'] == 'dc') {
                 $isDesignatedContact = true;
+            } elseif ($record['note_user_types'] == 'admin') {
+                $userRole = self::ADMIN;
             }
 
             // if pid/s defined  loop over  listed PID
@@ -122,12 +126,10 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
                 $allProjects = true;
             }
 
+
             // if notifications for specific projects loop over
             if (!$allProjects) {
                 foreach ($pids as $pid) {
-                    if ($record['note_user_types'] == 'admin') {
-                        $userRole = $this->getProjectAdminRole($pid);
-                    }
                     $key = self::generateKey($notificationId, false, $pid, $isProd, $userRole, $isDesignatedContact);
                     $this->getCacheClient()->setKey($key, json_encode($record));
                 }
@@ -151,6 +153,82 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
         return $row['unique_role_name'];
     }
 
+    public function getNotifications($pid = null, $projectStatus = 0, $isAdmin = false)
+    {
+        $notifications = array();
+        $keys = self::buildCacheKeys($pid, $projectStatus, $isAdmin, self::isUserDesignatedContact($pid));
+        foreach ($keys as $key){
+            $notifications[] = $this->getCacheClient()->getKey($key);
+        }
+        return $notifications;
+    }
+
+    /**
+     * @param $pid
+     * @param $projectStatus
+     * @param $isAdmin
+     * @param $isDesignatedContact
+     * @return array
+     */
+    public static function buildCacheKeys($pid = null, $projectStatus = 0, $isAdmin = false, $isDesignatedContact = false)
+    {
+        $keys = array();
+        if ($pid) {
+
+            // Prod & Dev
+            // this will go for all project regardless of status or role. e.g 123_PRODDEV_ALLUSERS
+            $keys[] = $pid . self::getDelimiter() . self::PROD . self::DEV . self::getDelimiter() . self::ALLUSERS;
+
+            if ($isAdmin) {
+                $keys[] = $pid . self::getDelimiter() . self::PROD . self::DEV . self::getDelimiter() . self::ADMIN;
+            }
+
+            if ($isDesignatedContact) {
+                $keys[] = $pid . self::getDelimiter() . self::PROD . self::DEV . self::getDelimiter() . self::DESIGNATED_CONTACT;
+            }
+
+            // Key for Prod projects
+            if ($projectStatus) {
+                $keys[] = $pid . self::getDelimiter() . self::PROD . self::getDelimiter() . self::ALLUSERS;
+
+                if ($isAdmin) {
+                    $keys[] = $pid . self::getDelimiter() . self::PROD . self::getDelimiter() . self::ADMIN;
+                }
+
+                if ($isDesignatedContact) {
+                    $keys[] = $pid . self::getDelimiter() . self::PROD . self::getDelimiter() . self::DESIGNATED_CONTACT;
+                }
+            } else {
+
+                // Key for Dev projects
+                $keys[] = $pid . self::getDelimiter() . self::DEV . self::getDelimiter() . self::ALLUSERS;
+
+                if ($isAdmin) {
+                    $keys[] = $pid . self::getDelimiter() . self::DEV . self::getDelimiter() . self::ADMIN;
+                }
+
+                if ($isDesignatedContact) {
+                    $keys[] = $pid . self::getDelimiter() . self::DEV . self::getDelimiter() . self::DESIGNATED_CONTACT;
+                }
+            }
+
+        }
+
+        return $keys;
+    }
+
+    public static function isUserDesignatedContact($pid)
+    {
+        // TODO check if Designated Contact EM enabled or not.
+        if (defined('USERID')) {
+            $user = USERID;
+            $sql = sprintf("SELECT contact_userid FROM designated_contact_selected WHERE contact_userid = %s", db_escape($user));
+            $q = db_query($sql);
+            return !empty(db_fetch_assoc($q));
+        }
+        return false;
+    }
+
     /**
      * display emdebugs only for custom comma delimited list of userids to debug for select subset of userids to try to find out why they constantly callback for notif payloads
      *
@@ -172,7 +250,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
 
     public static function parseKey($key)
     {
-        $parts = explode('_', $key);
+        $parts = explode(self::getDelimiter(), $key);
         $parsed = array();
         // first part should be all projects or pid
         if (self::ALL_PROJECTS == $parts[0] or is_numeric($parts[0])) {
@@ -210,28 +288,27 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
 
         $key = '';
         if ($allProjects) {
-            $key .= self::ALL_PROJECTS . '_';
+            $key .= self::ALL_PROJECTS . self::getDelimiter();
         } elseif ($pid) {
-            $key .= $pid . '_';
+            $key .= $pid . self::getDelimiter();
         } else {
             throw new \Exception("Cant build Notification Key for '$notificationId'");
         }
 
-        if(is_null($isProd)){
-            $key .= self::PROD . self::DEV . '_';
-        }
-        elseif ($isProd) {
-            $key .= self::PROD . '_';
+        if (is_null($isProd)) {
+            $key .= self::PROD . self::DEV . self::getDelimiter();
+        } elseif ($isProd) {
+            $key .= self::PROD . self::getDelimiter();
         } else {
-            $key .= self::DEV . '_';
+            $key .= self::DEV . self::getDelimiter();
         }
 
         if ($userRole) {
-            $key .= $userRole . '_';
+            $key .= $userRole . self::getDelimiter();
         } elseif ($isDesignatedContact) {
-            $key .= self::DESIGNATED_CONTACT . '_';
+            $key .= self::DESIGNATED_CONTACT . self::getDelimiter();
         } else {
-            $key .= self::ALLUSERS . '_';
+            $key .= self::ALLUSERS . self::getDelimiter();
         }
         return $key . $notificationId;
     }
@@ -255,5 +332,8 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
         $this->cacheClient = $cacheClient;
     }
 
-
+    public static function getDelimiter()
+    {
+        return '_';
+    }
 }
