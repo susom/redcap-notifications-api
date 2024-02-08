@@ -81,9 +81,10 @@ class Redis implements CacheInterface
 
     public function getKeys(array $arr): array
     {
-//        TODO
-
-        return $this->client->mget($arr);
+        $ret = [];
+        foreach($arr as $key)
+            $ret[] = $this->getKey($key);
+        return $ret;
     }
 
     public function deleteKey($key): int

@@ -27,7 +27,7 @@ try {
     $c2 = $client->getKey("1_prod_all_2");
     var_dump($c, $c2);
 
-    echo "Get Keys `2_prod_all_1, 2_prod_all_3`";
+    echo "Get Keys `2_prod_all_1, 3_prod_all_1`";
     $d = $client->getKeys(["2_prod_all_1", "3_prod_all_1"]);
     var_dump($d);
 

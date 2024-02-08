@@ -21,7 +21,7 @@ Each notification ID will correspond to a `field` with a given value in Redis
 
 The structure will resemble the following:
 
-```json
+```text
   // Key => notification id => value
   16023_prod_all => 1 => {data}
   16023_prod_all => 2 => {data2}
