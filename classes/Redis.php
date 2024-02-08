@@ -4,6 +4,7 @@ namespace Stanford\RedcapNotificationsAPI;
 /** @var \Stanford\RedcapNotificationsAPI\RedcapNotificationsAPI $module*/
 
 use Predis\Client;
+use DateTime;
 
 class Redis implements CacheInterface
 {
@@ -22,8 +23,16 @@ class Redis implements CacheInterface
         $this->luaPath=$luaPath;
     }
 
+
+    /**
+     *
+     * @param $key
+     * @param $value JSON pyaload
+     * @return void
+     */
     public function setKey($key, $value): void
     {
+
         //Grab notification ID from pre-generated key
         $explode = explode("_", $key);
         $notification_id = $explode[3];
@@ -31,6 +40,7 @@ class Redis implements CacheInterface
         //Notification ID will be hashed in redis, remove
         unset($explode[3]);
         $storage_key = implode("_", $explode);
+
 
         //Add key as PID_[PROD/DEV]_[ROLE] as key, setting hash as notification ID
         $this->client->hset($storage_key, $notification_id, $value);
@@ -57,20 +67,30 @@ class Redis implements CacheInterface
     }
 
     /**
+     * Grabs all values in redis for a given hash
      * @param $key
      * @return void
      */
-    public function getAllValues($key): array
+    public function getData($key): array
     {
         // Expecting key in the format PID_[PROD/DEV]_ROLE
-        $explode = explode("_", $key);
-        $notification_id = $explode[3];
+        $kv = $this->client->hgetall($key);
 
-        unset($explode[3]);
-        $storage_key = implode("_", $explode);
+        foreach($kv as $k => $value){
+            $json = json_decode($value, true);
 
-        $values = $this->getHashedValues($this->luaPath, 1, $storage_key, 0);
-        return $values[1] ?? [];
+            if(!empty($json['note_end_dt'])) {
+                $expire = new DateTime($json['note_end_dt']);
+
+                // Expire key hash and delete from return if expiration date is reached
+                if($expire <= new DateTime()) {
+                    $this->client->hdel($key, [$k]);
+                    unset($kv[$k]);
+                }
+            }
+        }
+
+        return $kv ?? [];
 
     }
 
@@ -144,6 +164,7 @@ class Redis implements CacheInterface
     }
 
     public function getHashedValues(string $path, int $num_keys, string $key, int $cursor){
+        //        $values = $this->getHashedValues($this->luaPath, 1, $key, 0);
         return $this->client->eval(file_get_contents($path), $num_keys, $key, $cursor);
     }
 }

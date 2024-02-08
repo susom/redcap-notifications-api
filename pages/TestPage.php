@@ -13,9 +13,9 @@ try {
 
     echo "Set Key '1_prod_all_1' => '{data:value}'";
     echo "        ";
-    echo "Set Key '1_prod_all_2' => '{data:secondhashedvalue}'";
-    $a = $client->setKey('1_prod_all_1','{data:value}');
-    $a = $client->setKey('1_prod_all_2','{data:secondhashedvalue}');
+    echo "Set Key '1_prod_all_2' => '{data:secondhashedvalue, note_end_dt:2024-02-09 }'";
+    $a = $client->setKey('1_prod_all_1','{"data":"value", "note_end_dt":"2024-02-02"}');
+    $a = $client->setKey('1_prod_all_4','{data:secondhashedvalue}');
     var_dump($client->listKeys("*"));
 
     echo "Set Keys `1_prod_all_2, 1_prod_all_3`";
@@ -40,7 +40,7 @@ try {
 //    var_dump($output);
 
     echo "Testing getAllValues";
-    var_dump($client->getAllValues("1_prod_all_1"));
+    var_dump($client->getData("1_prod_all"));
 
 
     echo "Delete Key `1_prod_all_1`";
