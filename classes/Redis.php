@@ -73,14 +73,15 @@ class Redis implements CacheInterface
 
     /**
      * Grabs all values in redis for a given hash
+     * Expecting key in the format PID_[PROD/DEV]_ROLE
      * @param $key
      * @return void
      */
     public function getData($key): array
     {
-        // Expecting key in the format PID_[PROD/DEV]_ROLE
         $kv = $this->client->hgetall($key);
 
+        // Check to see if any values should be expired
         foreach($kv as $k => $value){
             $json = json_decode($value, true);
 
@@ -112,6 +113,12 @@ class Redis implements CacheInterface
         return $ret;
     }
 
+    /**
+     * Remove selected key
+     * NOTE: Removing a key will delete all associated field,value pairs -- currently each notification as a f,v
+     * @param $key
+     * @return int
+     */
     public function deleteKey($key): int
     {
         //Grab notification ID from pre-generated key
