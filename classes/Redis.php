@@ -1,7 +1,6 @@
 <?php
 
 namespace Stanford\RedcapNotificationsAPI;
-/** @var \Stanford\RedcapNotificationsAPI\RedcapNotificationsAPI $module*/
 
 use Predis\Client;
 use DateTime;
@@ -95,8 +94,9 @@ class Redis implements CacheInterface
                 }
             }
 
+            // Change index of returned keys to be the full cached string
             if(isset($kv[$k])){
-                $newKey = $key . "_" . $k; //Based on delimiter being an underscore must change if altered
+                $newKey = $key . RedcapNotificationsAPI::getDelimiter() . $k; //Based on delimiter being an underscore must change if altered
                 $kv[$newKey] = $kv[$k];
                 unset($kv[$k]);
             }
