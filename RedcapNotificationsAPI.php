@@ -175,7 +175,51 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
             }
 
         }
+
+        $dismissedNotifications = $this->getCacheClient()->getKey(self::getUserDismissKey());
+        $dismissedNotifications = explode(',', end($dismissedNotifications)['message']);
+        foreach ($dismissedNotifications as $dismissedNotification){
+            unset($notifications[$dismissedNotification]);
+        }
+
         return $notifications;
+    }
+
+    public static function getUserDismissKey(): string
+    {
+        if(defined('USERID')){
+            return USERID . '_dismissals';
+        }else{
+            throw new \Exception("No User found");
+        }
+    }
+
+    /**
+     * @throws \Exception
+     */
+    public function dismissNotification($key)
+    {
+        try{
+            if(defined('USERID')){
+            $dismissKey = self::getUserDismissKey();
+            $value = $key ;
+            $dismissRecord = $this->getCacheClient()->getKey($dismissKey);
+
+            // if user has other dismissed notifications add new one to the list.
+            if(!empty($dismissRecord)){
+                // only one dismiss record per user
+                $temp = end($dismissRecord);
+
+                $value .= ',' . $temp['message'];
+            }
+            $this->getCacheClient()->setKey($dismissKey, $value);
+
+        }else{
+            throw new \Exception("User is not logged in!");
+        }
+        }catch (\Exception $e){
+            return false;
+        }
     }
 
     /**

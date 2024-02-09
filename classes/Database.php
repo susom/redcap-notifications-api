@@ -28,7 +28,7 @@ class Database implements CacheInterface
     }
     public function getKey($key)
     {
-        $sql = sprintf("SELECT * FROM redcap_external_modules_log WHERE record LIKE '%s_%%'", db_escape($key));
+        $sql = sprintf("SELECT * FROM redcap_external_modules_log WHERE record LIKE '%s%%'", db_escape($key));
         $q = db_query($sql);
         $result = [];
         while($row = db_fetch_assoc($q)) {
