@@ -33,12 +33,12 @@ class Redis implements CacheInterface
     {
 
         //Grab notification ID from pre-generated key
-        $explode = explode("_", $key);
+        $explode = explode(RedcapNotificationsAPI::getDelimiter(), $key);
         $notification_id = $explode[3];
 
         //Notification ID will be hashed in redis, remove
         unset($explode[3]);
-        $storage_key = implode("_", $explode);
+        $storage_key = implode(RedcapNotificationsAPI::getDelimiter(), $explode);
 
 
         //Add key as PID_[PROD/DEV]_[ROLE] as key, setting hash as notification ID
@@ -61,11 +61,11 @@ class Redis implements CacheInterface
      */
     public function getKey($key): ?string
     {
-        $explode = explode("_", $key);
+        $explode = explode(RedcapNotificationsAPI::getDelimiter(), $key);
         $notification_id = $explode[3];
 
         unset($explode[3]);
-        $storage_key = implode("_", $explode);
+        $storage_key = implode(RedcapNotificationsAPI::getDelimiter(), $explode);
 
         return $this->client->hget($storage_key, $notification_id);
     }
@@ -128,12 +128,12 @@ class Redis implements CacheInterface
     public function deleteKey($key): int
     {
         //Grab notification ID from pre-generated key
-        $explode = explode("_", $key);
+        $explode = explode(RedcapNotificationsAPI::getDelimiter(), $key);
         $notification_id = $explode[3];
 
         //Notification ID will be hashed in redis, remove
         unset($explode[3]);
-        $storage_key = implode("_", $explode);
+        $storage_key = implode(RedcapNotificationsAPI::getDelimiter(), $explode);
 
         return $this->client->del($storage_key);
     }
