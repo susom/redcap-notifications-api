@@ -169,14 +169,14 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
         foreach ($keys as $key){
             // TODO we need to find another way otherwise this will be bottleneck
             if(empty($notifications)){
-                $notifications = $this->getCacheClient()->getKey($key);
+                $notifications = $this->getCacheClient()->getData($key);
             }else{
-                $notifications = array_merge($this->getCacheClient()->getKey($key), $notifications);
+                $notifications = array_merge($this->getCacheClient()->getData($key), $notifications);
             }
 
         }
 
-        $dismissedNotifications = $this->getCacheClient()->getKey(self::getUserDismissKey());
+        $dismissedNotifications = $this->getCacheClient()->getData(self::getUserDismissKey());
         $dismissedNotifications = explode(',', end($dismissedNotifications)['message']);
         foreach ($dismissedNotifications as $dismissedNotification){
             unset($notifications[$dismissedNotification]);

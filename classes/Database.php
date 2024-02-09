@@ -39,7 +39,7 @@ class Database implements CacheInterface
 
     public function getData($key)
     {
-        self::getKey($key);
+        return self::getKey($key);
     }
 
     public function searchKey($phrase)
