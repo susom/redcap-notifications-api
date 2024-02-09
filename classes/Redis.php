@@ -94,6 +94,12 @@ class Redis implements CacheInterface
                     unset($kv[$k]);
                 }
             }
+
+            if(isset($kv[$k])){
+                $newKey = $key . "_" . $k; //Based on delimiter being an underscore must change if altered
+                $kv[$newKey] = $kv[$k];
+                unset($kv[$k]);
+            }
         }
 
         return $kv ?? [];
