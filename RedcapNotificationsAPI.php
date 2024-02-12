@@ -35,6 +35,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
     const DESIGNATED_CONTACT = 'DC';
     const ALLUSERS = 'ALLUSERS';
 
+    CONST REDIS_MAP_NAME = 'NOTIFICATION_MAP';
 
     private $SURVEY_USER = '[survey respondent]';
 
