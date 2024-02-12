@@ -50,7 +50,7 @@ class Redis implements CacheInterface
 
         //Add key as PID_[PROD/DEV]_[ROLE] as key, setting hash as notification ID
         $this->client->hset($storage_key, $notification_id, $value);
-        $this->client->hset('NOTIFICATION_MAP', $notification_id, $storage_key);
+        $this->client->hset(RedcapNotificationsAPI::REDIS_MAP_NAME, $notification_id, $storage_key);
     }
 
     public function setKeys(array $arr): void
