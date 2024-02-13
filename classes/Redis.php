@@ -19,7 +19,7 @@ class Redis implements CacheInterface
             'connections' => 'relay' //For performance improvements
         ]);
 
-        $this->luaPath=$luaPath;
+        $this->luaPath = $luaPath;
     }
 
 
@@ -31,7 +31,6 @@ class Redis implements CacheInterface
      */
     public function setKey($key, $value): void
     {
-
         //Grab notification ID from pre-generated key
         $explode = explode(RedcapNotificationsAPI::getDelimiter(), $key);
         $notification_id = $explode[3];
@@ -40,17 +39,25 @@ class Redis implements CacheInterface
         unset($explode[3]);
         $storage_key = implode(RedcapNotificationsAPI::getDelimiter(), $explode);
 
+        //Use mapping table to determine if notification has been saved before (update)
+        if ($this->client->hexists(RedcapNotificationsAPI::REDIS_MAP_NAME, $notification_id)) {
+            $location = $this->client->hget(RedcapNotificationsAPI::REDIS_MAP_NAME, $notification_id);
+
+            // Delete previous key and map entry
+            $this->client->hdel($location, [$notification_id]);
+            $this->client->hdel(RedcapNotificationsAPI::REDIS_MAP_NAME, [$notification_id]);
+        }
 
         //Add key as PID_[PROD/DEV]_[ROLE] as key, setting hash as notification ID
         $this->client->hset($storage_key, $notification_id, $value);
-
+        $this->client->hset(RedcapNotificationsAPI::REDIS_MAP_NAME, $notification_id, $storage_key);
     }
 
     public function setKeys(array $arr): void
     {
 //        TODO
         $ret = [];
-        foreach($arr as $key => $value)
+        foreach ($arr as $key => $value)
             $this->setKey($key, $value);
     }
 
@@ -81,21 +88,21 @@ class Redis implements CacheInterface
         $kv = $this->client->hgetall($key);
 
         // Check to see if any values should be expired
-        foreach($kv as $k => $value){
+        foreach ($kv as $k => $value) {
             $json = json_decode($value, true);
 
-            if(!empty($json['note_end_dt'])) {
+            if (!empty($json['note_end_dt'])) {
                 $expire = new DateTime($json['note_end_dt']);
 
                 // Expire key hash and delete from return if expiration date is reached
-                if($expire <= new DateTime()) {
+                if ($expire <= new DateTime()) {
                     $this->client->hdel($key, [$k]);
                     unset($kv[$k]);
                 }
             }
 
             // Change index of returned keys to be the full cached string
-            if(isset($kv[$k])){
+            if (isset($kv[$k])) {
                 $newKey = $key . RedcapNotificationsAPI::getDelimiter() . $k; //Based on delimiter being an underscore must change if altered
                 $kv[$newKey] = $kv[$k];
                 unset($kv[$k]);
@@ -114,7 +121,7 @@ class Redis implements CacheInterface
     public function getKeys(array $arr): array
     {
         $ret = [];
-        foreach($arr as $key)
+        foreach ($arr as $key)
             $ret[] = $this->getKey($key);
         return $ret;
     }
@@ -140,8 +147,8 @@ class Redis implements CacheInterface
 
     public function deleteKeys(array $arr): int
     {
-        foreach($arr as $key)
-            if(!$this->deleteKey($key))
+        foreach ($arr as $key)
+            if (!$this->deleteKey($key))
                 return 0;
         return 1;
     }
@@ -166,7 +173,8 @@ class Redis implements CacheInterface
      * @param $pattern
      * @return void
      */
-    public function search($pattern){
+    public function search($pattern)
+    {
         $output = "";
         echo "Testing Scan for pattern key*";
         foreach (new Iterator\Keyspace($this->getRedisClient(), $pattern) as $key) {
@@ -181,7 +189,8 @@ class Redis implements CacheInterface
         return $this->client->info();
     }
 
-    public function getHashedValues(string $path, int $num_keys, string $key, int $cursor){
+    public function getHashedValues(string $path, int $num_keys, string $key, int $cursor)
+    {
         //        $values = $this->getHashedValues($this->luaPath, 1, $key, 0);
         return $this->client->eval(file_get_contents($path), $num_keys, $key, $cursor);
     }
