@@ -32,7 +32,7 @@ class Database implements CacheInterface
         $q = db_query($sql);
         $result = [];
         while($row = db_fetch_assoc($q)) {
-            $result[$row['record']] = $row;
+            $result[$row['record']] = $row['message'];
         }
         return $result;
     }

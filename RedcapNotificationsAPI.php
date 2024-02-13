@@ -178,7 +178,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
         }
 
         $dismissedNotifications = $this->getCacheClient()->getData(self::getUserDismissKey());
-        $dismissedNotifications = explode(',', end($dismissedNotifications)['message']);
+        $dismissedNotifications = explode(',', end($dismissedNotifications));
         foreach ($dismissedNotifications as $dismissedNotification){
             unset($notifications[$dismissedNotification]);
         }
