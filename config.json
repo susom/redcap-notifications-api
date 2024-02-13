@@ -118,24 +118,6 @@
             "type": "project-id"
         },
         {
-            "key": "dismissal-pid",
-            "name": "<b>Notifications that were dismissed PID</b><i></i> Project ID where notifications were viewed and dismissed",
-            "required": true,
-            "type": "project-id"
-        },
-        {
-            "key": "redcap-notifs-snooze-minutes",
-            "name": "Time in <b>minutes</b> that the snooze button will hide REDCap Notifications",
-            "required": false,
-            "type": "text"
-        },
-        {
-            "key": "redcap-notifs-refresh-limit",
-            "name": "Time in <b>hours</b> before forcing a notification payload refresh",
-            "required": false,
-            "type": "text"
-        },
-        {
             "key": "enable-system-debug-logging",
             "name": "<b>Enable Debug Logging (system-wide)</b><i>(optional)</i> Requires installation and configuration of emLogger",
             "required": false,
