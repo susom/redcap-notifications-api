@@ -26,7 +26,7 @@ class Redis implements CacheInterface
     /**
      *
      * @param $key
-     * @param $value JSON pyaload
+     * @param $value JSON payload
      * @return void
      */
     public function setKey($key, $value): void
@@ -55,8 +55,6 @@ class Redis implements CacheInterface
 
     public function setKeys(array $arr): void
     {
-//        TODO
-        $ret = [];
         foreach ($arr as $key => $value)
             $this->setKey($key, $value);
     }
