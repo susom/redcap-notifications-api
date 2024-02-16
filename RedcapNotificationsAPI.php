@@ -226,6 +226,8 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
     {
         try {
             if (defined('USERID')) {
+                // lock will prevent duplicating user dismiss key
+                $this->query("SELECT GET_LOCK(?, 5)", [self::getUserDismissKey()]);
                 $dismissKey = self::getUserDismissKey();
                 $value = $key;
                 $dismissRecord = $this->getCacheClient()->getKey($dismissKey);
@@ -238,6 +240,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
                     $value .= ',' . $temp;
                 }
                 $this->getCacheClient()->setKey($dismissKey, $value);
+                $this->query("select RELEASE_LOCK(?)", [self::getUserDismissKey()]);
                 return true;
             } else {
                 throw new \Exception("User is not logged in! Failed to dismiss notification $key");
