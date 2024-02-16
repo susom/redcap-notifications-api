@@ -19,23 +19,16 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
 
     const DEFAULT_NOTIF_SNOOZE_TIME_MIN = 5;
     const DEFAULT_NOTIF_REFRESH_TIME_HOUR = 6;
-
     const SYSTEM = 'SYSTEM';
     const ALL_PROJECTS = 'GLOBAL';
-
     const USER_ROLE = 'USER_ROLE';
-
     const ADMIN = 'ADMIN';
-
     const PROD = 'PROD';
-
     const SERVER_BOTH = 'PROD:DEV';
-
     const DEV = 'DEV';
     const DESIGNATED_CONTACT = 'DC';
     const ALLUSERS = 'ALLUSERS';
-
-    CONST REDIS_MAP_NAME = 'NOTIFICATION_MAP';
+    const REDIS_MAP_NAME = 'NOTIFICATION_MAP';
 
     private $SURVEY_USER = '[survey respondent]';
 
@@ -63,7 +56,6 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
                                 $survey_hash, $response_id, $repeat_instance)
     {
         // If this is the notification project, update the latest update date
-
         $last_update_ts = (new DateTime())->format('Y-m-d H:i:s');
 
         $params = array(
@@ -167,11 +159,11 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
     {
         $notifications = array();
         $keys = self::buildCacheKeys($pid, $projectStatus, $isAdmin, self::isUserDesignatedContact($pid));
-        foreach ($keys as $key){
+        foreach ($keys as $key) {
             // TODO we need to find another way otherwise this will be bottleneck
-            if(empty($notifications)){
+            if (empty($notifications)) {
                 $notifications = $this->getCacheClient()->getData($key);
-            }else{
+            } else {
                 $notifications = array_merge($this->getCacheClient()->getData($key), $notifications);
             }
 
@@ -179,7 +171,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
 
         $dismissedNotifications = $this->getCacheClient()->getData(self::getUserDismissKey());
         $dismissedNotifications = explode(',', end($dismissedNotifications));
-        foreach ($dismissedNotifications as $dismissedNotification){
+        foreach ($dismissedNotifications as $dismissedNotification) {
             unset($notifications[$dismissedNotification]);
         }
 
@@ -188,9 +180,9 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
 
     public static function getUserDismissKey(): string
     {
-        if(defined('USERID')){
+        if (defined('USERID')) {
             return USERID . '_dismissals';
-        }else{
+        } else {
             throw new \Exception("No User found");
         }
     }
@@ -200,25 +192,26 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
      */
     public function dismissNotification($key)
     {
-        try{
-            if(defined('USERID')){
-            $dismissKey = self::getUserDismissKey();
-            $value = $key ;
-            $dismissRecord = $this->getCacheClient()->getKey($dismissKey);
+        try {
+            if (defined('USERID')) {
+                $dismissKey = self::getUserDismissKey();
+                $value = $key;
+                $dismissRecord = $this->getCacheClient()->getKey($dismissKey);
 
-            // if user has other dismissed notifications add new one to the list.
-            if(!empty($dismissRecord)){
-                // only one dismiss record per user
-                $temp = end($dismissRecord);
+                // if user has other dismissed notifications add new one to the list.
+                if (!empty($dismissRecord)) {
+                    // only one dismiss record per user
+                    $temp = end($dismissRecord);
 
-                $value .= ',' . $temp['message'];
+                    $value .= ',' . $temp['message'];
+                }
+                $this->getCacheClient()->setKey($dismissKey, $value);
+                return true;
+            } else {
+                throw new \Exception("User is not logged in! Failed to dismiss notification $key");
             }
-            $this->getCacheClient()->setKey($dismissKey, $value);
-
-        }else{
-            throw new \Exception("User is not logged in!");
-        }
-        }catch (\Exception $e){
+        } catch (\Exception $e) {
+            \REDCap::logEvent($e);
             return false;
         }
     }
