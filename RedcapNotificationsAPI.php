@@ -19,18 +19,12 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
 
     const DEFAULT_NOTIF_SNOOZE_TIME_MIN = 5;
     const DEFAULT_NOTIF_REFRESH_TIME_HOUR = 6;
-
     const SYSTEM = 'SYSTEM';
     const ALL_PROJECTS = 'GLOBAL';
-
     const USER_ROLE = 'USER_ROLE';
-
     const ADMIN = 'ADMIN';
-
     const PROD = 'PROD';
-
     const SERVER_BOTH = 'PROD:DEV';
-
     const DEV = 'DEV';
     const DESIGNATED_CONTACT = 'DC';
     const ALLUSERS = 'ALLUSERS';
@@ -63,7 +57,6 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
                                 $survey_hash, $response_id, $repeat_instance)
     {
         // If this is the notification project, update the latest update date
-
         $last_update_ts = (new DateTime())->format('Y-m-d H:i:s');
 
         $params = array(
@@ -242,14 +235,15 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
                     // only one dismiss record per user
                     $temp = end($dismissRecord);
 
-                    $value .= ',' . $temp['message'];
+                    $value .= ',' . $temp;
                 }
                 $this->getCacheClient()->setKey($dismissKey, $value);
-
+                return true;
             } else {
-                throw new \Exception("User is not logged in!");
+                throw new \Exception("User is not logged in! Failed to dismiss notification $key");
             }
         } catch (\Exception $e) {
+            \REDCap::logEvent($e);
             return false;
         }
     }
@@ -367,7 +361,9 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
         if (self::ALL_PROJECTS == $parts[0] or is_numeric($parts[0])) {
             $parsed['type'] = $parts[0];
         } else {
-            throw new \Exception("Unknown notification type $key");
+            // if this key for dismissed notification then just return username
+            $parsed['username'] = $parts[0];
+            return $parsed;
         }
 
         // second part has to be prod or dev or both PRODDEV
