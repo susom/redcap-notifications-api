@@ -70,4 +70,18 @@ class Database implements CacheInterface
         // TODO: Implement expireKey() method.
     }
 
+    public function deleteExpiredDismissedKey($key)
+    {
+        $sql = sprintf("SELECT * FROM redcap_external_modules_log WHERE message LIKE '%%%s%%'", db_escape($key));
+        $q = db_query($sql);
+        while($row = db_fetch_assoc($q))
+        {
+            // regex to remove expired from dismissed notification
+            $re = '/('.$key.',)|('.$key.')|(,'.$key.')/m';
+            $value = preg_replace($re, '', $row['message']);
+            // save new dismissed list for each user.
+            $sql = sprintf("UPDATE redcap_external_modules_log SET message = '%s', record = '%s' WHERE log_id = %d ", $value, $row['record'], $row['log_id']);
+            $q = db_query($sql);
+        }
+    }
 }

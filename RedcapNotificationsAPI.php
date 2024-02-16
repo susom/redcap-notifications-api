@@ -35,7 +35,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
     const DESIGNATED_CONTACT = 'DC';
     const ALLUSERS = 'ALLUSERS';
 
-    CONST REDIS_MAP_NAME = 'NOTIFICATION_MAP';
+    const REDIS_MAP_NAME = 'NOTIFICATION_MAP';
 
     private $SURVEY_USER = '[survey respondent]';
 
@@ -97,6 +97,36 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
 
     }
 
+    public function determineKeyVariabes($record)
+    {
+        $allProjects = false;
+        $pids = null;
+        $userRole = null;
+        $isDesignatedContact = false;
+        $isProd = null;
+        // if project status defined otherwise will be for both prod and dev
+        if (!is_null($record['project_status']) and $record['project_status'] != '') {
+            $isProd = $record['project_status'];
+        }
+
+
+        // determine nitification user role.
+        if ($record['note_user_types'] == 'dc') {
+            $isDesignatedContact = true;
+        } elseif ($record['note_user_types'] == 'admin') {
+            $userRole = self::ADMIN;
+        }
+
+        // if pid/s defined  loop over  listed PID
+        if ($record['note_project_id']) {
+            $pids = explode(',', $record['note_project_id']);
+        } else {
+            $allProjects = true;
+        }
+
+        return array($allProjects, $pids, $userRole, $isDesignatedContact, $isProd);
+    }
+
     /**
      * @throws \Exception
      */
@@ -110,25 +140,26 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
             $isDesignatedContact = false;
             $isProd = null;
             // if project status defined otherwise will be for both prod and dev
-            if (!is_null($record['project_status']) and $record['project_status'] != '') {
-                $isProd = $record['project_status'];
-            }
+//            if (!is_null($record['project_status']) and $record['project_status'] != '') {
+//                $isProd = $record['project_status'];
+//            }
+//
+//
+//            // determine nitification user role.
+//            if ($record['note_user_types'] == 'dc') {
+//                $isDesignatedContact = true;
+//            } elseif ($record['note_user_types'] == 'admin') {
+//                $userRole = self::ADMIN;
+//            }
+//
+//            // if pid/s defined  loop over  listed PID
+//            if ($record['note_project_id']) {
+//                $pids = explode(',', $record['note_project_id']);
+//            } else {
+//                $allProjects = true;
+//            }
 
-
-            // determine nitification user role.
-            if ($record['note_user_types'] == 'dc') {
-                $isDesignatedContact = true;
-            } elseif ($record['note_user_types'] == 'admin') {
-                $userRole = self::ADMIN;
-            }
-
-            // if pid/s defined  loop over  listed PID
-            if ($record['note_project_id']) {
-                $pids = explode(',', $record['note_project_id']);
-            } else {
-                $allProjects = true;
-            }
-
+            list($allProjects, $pids, $userRole, $isDesignatedContact, $isProd) = $this->determineKeyVariabes($record);
 
             // if notifications for specific projects loop over
             if (!$allProjects) {
@@ -167,11 +198,11 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
     {
         $notifications = array();
         $keys = self::buildCacheKeys($pid, $projectStatus, $isAdmin, self::isUserDesignatedContact($pid));
-        foreach ($keys as $key){
+        foreach ($keys as $key) {
             // TODO we need to find another way otherwise this will be bottleneck
-            if(empty($notifications)){
+            if (empty($notifications)) {
                 $notifications = $this->getCacheClient()->getData($key);
-            }else{
+            } else {
                 $notifications = array_merge($this->getCacheClient()->getData($key), $notifications);
             }
 
@@ -179,7 +210,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
 
         $dismissedNotifications = $this->getCacheClient()->getData(self::getUserDismissKey());
         $dismissedNotifications = explode(',', end($dismissedNotifications));
-        foreach ($dismissedNotifications as $dismissedNotification){
+        foreach ($dismissedNotifications as $dismissedNotification) {
             unset($notifications[$dismissedNotification]);
         }
 
@@ -188,9 +219,9 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
 
     public static function getUserDismissKey(): string
     {
-        if(defined('USERID')){
+        if (defined('USERID')) {
             return USERID . '_dismissals';
-        }else{
+        } else {
             throw new \Exception("No User found");
         }
     }
@@ -200,25 +231,25 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
      */
     public function dismissNotification($key)
     {
-        try{
-            if(defined('USERID')){
-            $dismissKey = self::getUserDismissKey();
-            $value = $key ;
-            $dismissRecord = $this->getCacheClient()->getKey($dismissKey);
+        try {
+            if (defined('USERID')) {
+                $dismissKey = self::getUserDismissKey();
+                $value = $key;
+                $dismissRecord = $this->getCacheClient()->getKey($dismissKey);
 
-            // if user has other dismissed notifications add new one to the list.
-            if(!empty($dismissRecord)){
-                // only one dismiss record per user
-                $temp = end($dismissRecord);
+                // if user has other dismissed notifications add new one to the list.
+                if (!empty($dismissRecord)) {
+                    // only one dismiss record per user
+                    $temp = end($dismissRecord);
 
-                $value .= ',' . $temp['message'];
+                    $value .= ',' . $temp['message'];
+                }
+                $this->getCacheClient()->setKey($dismissKey, $value);
+
+            } else {
+                throw new \Exception("User is not logged in!");
             }
-            $this->getCacheClient()->setKey($dismissKey, $value);
-
-        }else{
-            throw new \Exception("User is not logged in!");
-        }
-        }catch (\Exception $e){
+        } catch (\Exception $e) {
             return false;
         }
     }
@@ -410,7 +441,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
     public function getCacheClient()
     {
         if (!$this->cacheClient) {
-            $this->setCacheClient(CacheFactory::getCacheClient($this->getSystemSetting('redis-host'), $this->getSystemSetting('redis-port'), $this->getUrl('./lua_scripts/getHashedValues.lua')));
+            $this->setCacheClient(CacheFactory::getCacheClient($this->getSystemSetting('notification-cache'), $this->getSystemSetting('redis-host'), $this->getSystemSetting('redis-port'), $this->getUrl('./lua_scripts/getHashedValues.lua')));
         }
         return $this->cacheClient;
     }
@@ -427,4 +458,42 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
     {
         return '_';
     }
+
+
+    public function cleanupExpiredDatabaseNotifications()
+    {
+        // this applies only to database cache.
+        if ($this->getSystemSetting('notification-cache') == 'database' OR $_GET['skip'] == 'true') {
+            $projectId = $this->getSystemSetting('notification-pid');
+            $param = array(
+                'project_id' => $projectId,
+                'return_format' => 'array',
+            );
+            $records = \REDCap::getData($param);
+            $project = new \Project($projectId);
+            foreach ($records as $record) {
+                $record= end($record);
+                $expiryTime = $record['note_end_dt'];
+                // check if notification expired.
+                if (time() > strtotime($expiryTime)) {
+                    // get its current key.
+                    $notificationId = $record[$project->table_pk];
+                    list($allProjects, $pids, $userRole, $isDesignatedContact, $isProd) = $this->determineKeyVariabes($record);
+                    // if notifications for specific projects loop over
+                    if (!$allProjects) {
+                        foreach ($pids as $pid) {
+                            $key = self::generateKey($notificationId, false, $pid, $isProd, $userRole, $isDesignatedContact);
+                            $this->getCacheClient()->deleteKey($key);
+                            $this->getCacheClient()->deleteExpiredDismissedKey($key);
+                        }
+                    } else {
+                        $key = self::generateKey($notificationId, true, $pid, $isProd, $userRole, $isDesignatedContact);
+                        $this->getCacheClient()->deleteKey($key);
+                        $this->getCacheClient()->deleteExpiredDismissedKey($key);
+                    }
+                }
+            }
+        }
+    }
+
 }

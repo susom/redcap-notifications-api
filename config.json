@@ -136,7 +136,15 @@
             "type": "note"
         }
     ],
-    "crons": [],
+    "crons": [
+      {
+      "cron_name": "cleanup_expired_database_notifications",
+      "cron_description": "Daily cron to delete expired notifications saved in the Database cache. ",
+      "method": "cleanupExpiredDatabaseNotifications",
+      "cron_frequency": "86400",
+      "cron_max_run_time": "3600"
+    }
+    ],
     "compatibility": {
         "php-version-min": "",
         "php-version-max": "",
