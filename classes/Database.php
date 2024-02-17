@@ -27,8 +27,9 @@ class Database implements CacheInterface
             }
         }
 
-
+        db_query(sprintf("SELECT GET_LOCK(%s, 5)", db_escape($key)));
         db_query($sql);
+        db_query(sprintf("select RELEASE_LOCK(%s)", db_escape($key)));
     }
 
     private function isKeyExists($notification_id)
