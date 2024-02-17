@@ -202,9 +202,11 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
         }
 
         $dismissedNotifications = $this->getCacheClient()->getData(self::getUserDismissKey());
-        $dismissedNotifications = explode(',', end($dismissedNotifications));
-        foreach ($dismissedNotifications as $dismissedNotification) {
-            unset($notifications[$dismissedNotification]);
+        if(!empty($dismissedNotifications)){
+            $dismissedNotifications = explode(',', end($dismissedNotifications));
+            foreach ($dismissedNotifications as $dismissedNotification) {
+                unset($notifications[$dismissedNotification]);
+            }
         }
 
         return $notifications;
@@ -234,7 +236,10 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
                 // if user has other dismissed notifications add new one to the list.
                 if (!empty($dismissRecord)) {
                     // only one dismiss record per user
-                    $temp = end($dismissRecord);
+                    if(gettype($dismissRecord) === 'array') //EM LOG return
+                        $temp = end($dismissRecord);
+                    else //REDIS return
+                        $temp = $dismissRecord;
 
                     $value .= ',' . $temp;
                 }
