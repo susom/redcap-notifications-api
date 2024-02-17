@@ -237,7 +237,10 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
                 // if user has other dismissed notifications add new one to the list.
                 if (!empty($dismissRecord)) {
                     // only one dismiss record per user
-                    $temp = end($dismissRecord);
+                    if(gettype($dismissRecord) === 'array') //EM LOG return
+                        $temp = end($dismissRecord);
+                    else //REDIS return
+                        $temp = $dismissRecord;
 
                     $value .= ',' . $temp;
                 }
