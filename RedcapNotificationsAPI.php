@@ -334,7 +334,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
         // TODO check if Designated Contact EM enabled or not.
         if (defined('USERID')) {
             $user = USERID;
-            $sql = sprintf("SELECT contact_userid FROM designated_contact_selected WHERE contact_userid = %s and project_id = %s", db_escape($user), $pid);
+            $sql = sprintf("SELECT contact_userid FROM designated_contact_selected WHERE contact_userid = '%s' and project_id = %s", db_escape($user), $pid);
             $q = db_query($sql);
             return !empty(db_fetch_assoc($q));
         }
