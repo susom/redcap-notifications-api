@@ -1,154 +1,196 @@
 {
-    "name": "REDCap_Notifications_API",
-    "namespace": "Stanford\\RedcapNotificationsAPI",
-    "description": "Notification System that can display messages to REDCap users",
-    "documentation": "README.md",
-    "authors": [
-        {
-            "name": "Irvin Szeto",
-            "email": "irvins@stanford.edu",
-            "institution": "Stanford University"
-        },
-        {
-            "name": "Jordan Schulz",
-            "email": "jmschult@stanford.edu",
-            "institution": "Stanford University"
-        },
-        {
-            "name": "Ihab Zeedia ",
-            "email": "ihabz@stanford.edu",
-            "institution": "Stanford University"
-        }
-    ],
-    "framework-version": 9,
-    "permissions": [
-        "redcap_every_page_top",
-        "redcap_save_record"
-    ],
-    "enable-every-page-hooks-on-system-pages": true,
-    "links": {
-        "project": [
-        ],
-        "control-center": [
-            {
-                "name": "Test Page",
-                "icon": "pencil",
-                "url": "pages/TestPage.php",
-                "show-header-and-footer": true
-            },
-            {
-                "name": "DemoNote",
-                "icon": "pencil",
-                "url": "pages/DemoNote.php",
-                "show-header-and-footer": true
-            }
-        ]
+  "name": "REDCap_Notifications_API",
+  "namespace": "Stanford\\RedcapNotificationsAPI",
+  "description": "Notification System that can display messages to REDCap users",
+  "documentation": "README.md",
+  "authors": [
+    {
+      "name": "Irvin Szeto",
+      "email": "irvins@stanford.edu",
+      "institution": "Stanford University"
     },
-    "enable-ajax-logging": true,
-    "auth-ajax-actions": [
-        "MyAction",
-        "get_full_payload",
-        "check_forced_refresh",
-        "save_dismissals"
+    {
+      "name": "Jordan Schulz",
+      "email": "jmschult@stanford.edu",
+      "institution": "Stanford University"
+    },
+    {
+      "name": "Ihab Zeedia ",
+      "email": "ihabz@stanford.edu",
+      "institution": "Stanford University"
+    }
+  ],
+  "framework-version": 9,
+  "permissions": [
+    "redcap_every_page_top",
+    "redcap_save_record"
+  ],
+  "no-auth-pages": [
+    "ajax/rules"
+  ],
+  "enable-every-page-hooks-on-system-pages": true,
+  "links": {
+    "project": [
     ],
-    "no-auth-ajax-actions": [
-        "MyAction",
-        "refresh",
-        "dismiss",
-        "force_refresh"
-    ],
-    "project-settings": [
-        {
-            "key": "enable-project-debug-logging",
-            "name": "<b>Enable Debug Logging</b><br><i>(optional)</i> Requires installation and configuration of emLogger",
-            "required": false,
-            "type": "checkbox"
-        }
-    ],
-    "system-settings": [
-        {
-            "key": "header",
-            "name": "<h6><b>REDCap Notification EM</b></h6></div>",
-            "type": "descriptive"
-        },
-        {
-            "key": "notification-cache",
-            "name": "Where do you want to cache notifications? (Default: Database)",
-            "type": "dropdown",
-            "choices": [
-                {
-                    "name": "Database",
-                    "value": "database"
-                },
-                {
-                    "name": "Redis",
-                    "value": "redis"
-                }
-            ]
-        },
-        {
-            "key": "redis-host",
-            "name": "Redis Host",
-            "required": true,
-            "type": "text",
-            "branchingLogic": {
-                "field": "notification-cache",
-                "value": "redis"
-            }
-        },
-        {
-            "key": "redis-port",
-            "name": "Redis Port",
-            "required": true,
-            "type": "text",
-            "branchingLogic": {
-                "field": "notification-cache",
-                "value": "redis"
-            }
-        },
-        {
-            "key": "instructions",
-            "name": "<b>For First time setup</b><p>Please check the boxes above to enable this EM on all projects by default and to hide this EM from all non-admins</i></div>",
-            "type": "descriptive"
-        },
-        {
-            "key": "notification-pid",
-            "name": "<b>Notifications PID</b><i></i> Project ID where notifications are created and stored",
-            "required": true,
-            "type": "project-id"
-        },
-        {
-            "key": "enable-system-debug-logging",
-            "name": "<b>Enable Debug Logging (system-wide)</b><i>(optional)</i> Requires installation and configuration of emLogger",
-            "required": false,
-            "type": "checkbox"
-        },
-        {
-            "key": "max-expiry-days",
-            "name": "<b>Max number of days notifications will be displayed</b><i></i> If an expiry date is not entered, the notification will expire after this many days",
-            "required": true,
-            "type": "text"
-        },
-        {
-            "key": "user-specific-log-list",
-            "name": "<b>Comma separated List of UserIDs to trigger custom debugs</b><i></i> We are tryign to figure out why a subset of userids are triggering callbacks every 30 seconds instead of honoring the 6 hour grace time",
-            "required": false,
-            "type": "note"
-        }
-    ],
-    "crons": [
+    "control-center": [
       {
+        "name": "Test Page",
+        "icon": "pencil",
+        "url": "pages/TestPage.php",
+        "show-header-and-footer": true
+      },
+      {
+        "name": "DemoNote",
+        "icon": "pencil",
+        "url": "pages/DemoNote.php",
+        "show-header-and-footer": true
+      }
+    ]
+  },
+  "enable-ajax-logging": true,
+  "auth-ajax-actions": [
+    "MyAction",
+    "get_full_payload",
+    "check_forced_refresh",
+    "save_dismissals"
+  ],
+  "no-auth-ajax-actions": [
+    "MyAction",
+    "refresh",
+    "dismiss",
+    "force_refresh"
+  ],
+  "project-settings": [
+    {
+      "key": "enable-project-debug-logging",
+      "name": "<b>Enable Debug Logging</b><br><i>(optional)</i> Requires installation and configuration of emLogger",
+      "required": false,
+      "type": "checkbox"
+    },
+    {
+      "key": "description",
+      "name": "<h6 style='text-align:center;color:red'><b>Notifications Rules</b></h6>. This feature automates notification distribution to specific projects. First, create a REDCap notification record containing your message. Second, define the source of project IDs: write an SQL query to pull a list or add a URI that returns an array of project IDs. A REDCap cron will then run hourly to retrieve the list and update the notification record's project IDs. ",
+      "type": "descriptive"
+    },
+    {
+      "key": "notification-rules",
+      "name": "<b>Notifications Rules</b>",
+      "required": false,
+      "type": "sub_settings",
+      "repeatable": true,
+      "sub_settings": [
+        {
+          "key": "notification_record_id",
+          "name": "<b>Notification Record  Id where Project Ids list will be saved.</b><br/>",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "key": "api_endpoint",
+          "name": "<b>URL to Endpoint to pull Project IDs list. </b><br/>",
+          "required": false,
+          "type": "text"
+        },
+        {
+          "key": "sql_query",
+          "name": "<b>SQL Query to pull list of Project IDs. </b><br/>",
+          "required": false,
+          "type": "text"
+        }
+      ]
+    }
+  ],
+  "system-settings": [
+    {
+      "key": "header",
+      "name": "<h6><b>REDCap Notification EM</b></h6></div>",
+      "type": "descriptive"
+    },
+    {
+      "key": "notification-cache",
+      "name": "Where do you want to cache notifications? (Default: Database)",
+      "type": "dropdown",
+      "choices": [
+        {
+          "name": "Database",
+          "value": "database"
+        },
+        {
+          "name": "Redis",
+          "value": "redis"
+        }
+      ]
+    },
+    {
+      "key": "redis-host",
+      "name": "Redis Host",
+      "required": true,
+      "type": "text",
+      "branchingLogic": {
+        "field": "notification-cache",
+        "value": "redis"
+      }
+    },
+    {
+      "key": "redis-port",
+      "name": "Redis Port",
+      "required": true,
+      "type": "text",
+      "branchingLogic": {
+        "field": "notification-cache",
+        "value": "redis"
+      }
+    },
+    {
+      "key": "instructions",
+      "name": "<b>For First time setup</b><p>Please check the boxes above to enable this EM on all projects by default and to hide this EM from all non-admins</i></div>",
+      "type": "descriptive"
+    },
+    {
+      "key": "notification-pid",
+      "name": "<b>Notifications PID</b><i></i> Project ID where notifications are created and stored",
+      "required": true,
+      "type": "project-id"
+    },
+    {
+      "key": "enable-system-debug-logging",
+      "name": "<b>Enable Debug Logging (system-wide)</b><i>(optional)</i> Requires installation and configuration of emLogger",
+      "required": false,
+      "type": "checkbox"
+    },
+    {
+      "key": "max-expiry-days",
+      "name": "<b>Max number of days notifications will be displayed</b><i></i> If an expiry date is not entered, the notification will expire after this many days",
+      "required": true,
+      "type": "text"
+    },
+    {
+      "key": "user-specific-log-list",
+      "name": "<b>Comma separated List of UserIDs to trigger custom debugs</b><i></i> We are tryign to figure out why a subset of userids are triggering callbacks every 30 seconds instead of honoring the 6 hour grace time",
+      "required": false,
+      "type": "note"
+    }
+  ],
+  "crons": [
+    {
       "cron_name": "cleanup_expired_database_notifications",
       "cron_description": "Daily cron to delete expired notifications saved in the Database cache. ",
       "method": "cleanupExpiredDatabaseNotifications",
       "cron_frequency": "86400",
       "cron_max_run_time": "3600"
+    },
+    {
+      "cron_name": "execute_notifications_rules",
+      "cron_description": "A Hourly cron to check Notifications rules and update Project IDs list for each rule. ",
+      "method": "cronNotificationsRules",
+      "cron_frequency": "3600",
+      "cron_max_run_time": "3600"
     }
-    ],
-    "compatibility": {
-        "php-version-min": "",
-        "php-version-max": "",
-        "redcap-version-min": "",
-        "redcap-version-max": ""
-    }
+  ],
+  "compatibility": {
+    "php-version-min": "",
+    "php-version-max": "",
+    "redcap-version-min": "",
+    "redcap-version-max": ""
+  }
 }
