@@ -115,7 +115,12 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
 
         // if pid/s defined  loop over  listed PID
         if ($record['note_project_id']) {
-            $pids = explode(',', $record['note_project_id']);
+            $pids = preg_split('/\s*(,\s*|\n)\s*/', $record['note_project_id'], -1, PREG_SPLIT_NO_EMPTY);
+
+            $excluded = preg_split('/\s*(,\s*|\n)\s*/', $record['project_exclusion'], -1, PREG_SPLIT_NO_EMPTY);
+            // remove excluded projects
+            $pids = array_diff($pids, $excluded);
+
         } else {
             $allProjects = true;
         }
@@ -523,9 +528,10 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
     public function executeNotificationsRules()
     {
         try {
-            $list = [];
+
             $client = new \GuzzleHttp\Client();
             foreach ($this->getRules() as $rule) {
+                $list = [];
                 if ($rule['api_endpoint'] != '') {
                     $response = $client->get($rule['api_endpoint']);
                     if ($response->getStatusCode() < 300) {
@@ -533,7 +539,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
 
                     }
                 } else {
-                                        $sql = sprintf($rule['sql_query']);
+                    $sql = sprintf($rule['sql_query']);
                     $q = db_query($sql);
                     while ($row = db_fetch_assoc($q)) {
                         $list[] = end($row);
