@@ -172,7 +172,6 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
                 $key = self::generateKey($notificationId, true, $pid, $isProd, $userRole, $isDesignatedContact);
                 $this->getCacheClient()->setKey($key, json_encode($record));
             }
-            \REDCap::logEvent("Notification '$notificationId' was cached correctly.");
         } catch (\Exception $e) {
             echo $e->getMessage();
             \REDCap::logEvent('Exeption:: Cant create notification cache', $e->getMessage());
