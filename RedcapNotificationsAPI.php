@@ -8,6 +8,7 @@ require_once "classes/Redis.php";
 require_once "classes/Database.php";
 require_once "classes/CacheFactory.php";
 
+use GuzzleHttp\Exception\GuzzleException;
 use REDCap;
 use DateTime;
 
@@ -34,10 +35,12 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
     private $SURVEY_USER = '[survey respondent]';
 
     private $cacheClient;
-//    public function __construct() {
-//		parent::__construct();
-//	}
 
+    private $rules = [];
+
+    private $notificationProjectId = null;
+
+    private $client = null;
     /**
      *  Using this function to update the [note_last_update_time] field of a notification
      *  record so we can tell when it's been changed in the REDCap Notifications Project.
@@ -112,7 +115,12 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
 
         // if pid/s defined  loop over  listed PID
         if ($record['note_project_id']) {
-            $pids = explode(',', $record['note_project_id']);
+            $pids = preg_split('/\s*(,\s*|\n)\s*/', $record['note_project_id'], -1, PREG_SPLIT_NO_EMPTY);
+
+            $excluded = preg_split('/\s*(,\s*|\n)\s*/', $record['project_exclusion'], -1, PREG_SPLIT_NO_EMPTY);
+            // remove excluded projects
+            $pids = array_diff($pids, $excluded);
+
         } else {
             $allProjects = true;
         }
@@ -164,7 +172,6 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
                 $key = self::generateKey($notificationId, true, $pid, $isProd, $userRole, $isDesignatedContact);
                 $this->getCacheClient()->setKey($key, json_encode($record));
             }
-            \REDCap::logEvent("Notification '$notificationId' was cached correctly.");
         } catch (\Exception $e) {
             echo $e->getMessage();
             \REDCap::logEvent('Exeption:: Cant create notification cache', $e->getMessage());
@@ -202,7 +209,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
         }
 
         $dismissedNotifications = $this->getCacheClient()->getData(self::getUserDismissKey());
-        if(!empty($dismissedNotifications)){
+        if (!empty($dismissedNotifications)) {
             $dismissedNotifications = explode(',', end($dismissedNotifications));
             foreach ($dismissedNotifications as $dismissedNotification) {
                 unset($notifications[$dismissedNotification]);
@@ -236,7 +243,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
                 // if user has other dismissed notifications add new one to the list.
                 if (!empty($dismissRecord)) {
                     // only one dismiss record per user
-                    if(gettype($dismissRecord) === 'array') //EM LOG return
+                    if (gettype($dismissRecord) === 'array') //EM LOG return
                         $temp = end($dismissRecord);
                     else //REDIS return
                         $temp = $dismissRecord;
@@ -466,7 +473,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
     public function cleanupExpiredDatabaseNotifications()
     {
         // this applies only to database cache.
-        if ($this->getSystemSetting('notification-cache') == 'database' OR $_GET['skip'] == 'true') {
+        if ($this->getSystemSetting('notification-cache') == 'database' or $_GET['skip'] == 'true') {
             $projectId = $this->getSystemSetting('notification-pid');
             $param = array(
                 'project_id' => $projectId,
@@ -475,7 +482,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
             $records = \REDCap::getData($param);
             $project = new \Project($projectId);
             foreach ($records as $record) {
-                $record= end($record);
+                $record = end($record);
                 $expiryTime = $record['note_end_dt'];
                 // check if notification expired.
                 if (time() > strtotime($expiryTime)) {
@@ -498,5 +505,137 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
             }
         }
     }
+
+    public function cronNotificationsRules()
+    {
+        try {
+            $url = $this->getUrl('ajax/rules', true, true) . '&NOAUTH&pid=' . $this->getNotificationProjectId();
+            $response = $this->getClient()->get($url);
+            if ($response->getStatusCode() < 300) {
+                json_decode($response->getBody(), true);
+            }
+        } catch (\GuzzleHttp\Exception\ClientException $e) {
+            $response = $e->getResponse();
+            $responseBodyAsString = $response->getBody()->getContents();
+            \REDCap::logEvent($responseBodyAsString, "", "", null, null, $this->getNotificationProjectId());
+        } catch (\Exception $e) {
+            \REDCap::logEvent($e->getMessage(), "", "", null, null, $this->getNotificationProjectId());
+
+        }
+    }
+
+    public function executeNotificationsRules()
+    {
+        try {
+
+            $client = new \GuzzleHttp\Client();
+            foreach ($this->getRules() as $rule) {
+                $list = [];
+                if ($rule['api_endpoint'] != '') {
+                    $response = $client->get($rule['api_endpoint']);
+                    if ($response->getStatusCode() < 300) {
+                        $list = json_decode($response->getBody(), true);
+
+                    }
+                } else {
+                    $sql = sprintf($rule['sql_query']);
+                    $q = db_query($sql);
+                    while ($row = db_fetch_assoc($q)) {
+                        $list[] = end($row);
+                    }
+                    // TODO verify Project IDs
+                }
+
+                $this->updateNotificationsProjectList($rule['notification_record_id'], $list);
+            }
+        } catch (GuzzleException $e) {
+        } catch (\Exception $e) {
+            echo $e->getMessage();
+        }
+    }
+
+    private function updateNotificationsProjectList($recordId, $list)
+    {
+
+        $data[\REDCap::getRecordIdField()] = $recordId;
+        $data['note_project_id'] = implode(',', $list);
+        $data['redcap_event_name'] = \REDCap::getEventNames(true, true, $this->getFirstEventId());
+        $response = \REDCap::saveData('json', json_encode(array($data)));
+        if (!empty($response['errors'])) {
+            if (is_array($response['errors'])) {
+                throw new \Exception(implode(",", $response['errors']));
+            } else {
+                throw new \Exception($response['errors']);
+            }
+        } else {
+            // Trigger save record hook to cache the updated notification in our cache
+            $params = array(
+                "records" => [$recordId],
+                "return_format" => "json",
+                "project_id" => $this->getNotificationProjectId()
+            );
+            $json = REDCap::getData($params);
+            $json = json_decode($json, true);
+            $this->cacheNotification($json[0]);
+        }
+    }
+
+    /**
+     * @return array
+     */
+    public function getRules()
+    {
+        if (!$this->rules) {
+            $this->setRules();
+        }
+        return $this->rules;
+    }
+
+    /**
+     * save $instances
+     */
+    public function setRules(): void
+    {
+        $this->rules = $this->getSubSettings('notification-rules', $this->getNotificationProjectId());;
+    }
+
+    /**
+     * @return null
+     */
+    public function getNotificationProjectId()
+    {
+        if (!$this->notificationProjectId) {
+            $this->setNotificationProjectId($this->getSystemSetting('notification-pid'));
+        }
+        return $this->notificationProjectId;
+    }
+
+    /**
+     * @param null $notificationProjectId
+     */
+    public function setNotificationProjectId($notificationProjectId): void
+    {
+        $this->notificationProjectId = $notificationProjectId;
+    }
+
+    /**
+     * @return \GuzzleHttp\Client
+     */
+    public function getClient(): \GuzzleHttp\Client
+    {
+        if (!$this->client) {
+            $this->setClient(new \GuzzleHttp\Client());
+        }
+        return $this->client;
+    }
+
+    /**
+     * @param \GuzzleHttp\Client $client
+     */
+    public function setClient(\GuzzleHttp\Client $client): void
+    {
+        $this->client = $client;
+    }
+
 
 }
