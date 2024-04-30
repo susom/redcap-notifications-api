@@ -9,6 +9,7 @@ require_once "classes/Database.php";
 require_once "classes/CacheFactory.php";
 
 use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\Promise;
 use REDCap;
 use DateTime;
 
@@ -41,6 +42,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
     private $notificationProjectId = null;
 
     private $client = null;
+
     /**
      *  Using this function to update the [note_last_update_time] field of a notification
      *  record so we can tell when it's been changed in the REDCap Notifications Project.
@@ -510,10 +512,14 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
     {
         try {
             $url = $this->getUrl('ajax/rules', true, true) . '&NOAUTH&pid=' . $this->getNotificationProjectId();
-            $response = $this->getClient()->get($url);
-            if ($response->getStatusCode() < 300) {
-                json_decode($response->getBody(), true);
+            $client = $this->getClient();
+            $promises = [];
+            foreach ($this->getRules() as $index => $rule) {
+                $promises[$index] = $client->getAsync($url . '&index=' . $index);
+
             }
+            $responses = Promise\Utils::unwrap($promises);
+
         } catch (\GuzzleHttp\Exception\ClientException $e) {
             $response = $e->getResponse();
             $responseBodyAsString = $response->getBody()->getContents();
@@ -524,14 +530,20 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
         }
     }
 
-    public function executeNotificationsRules()
+    public function executeNotificationsRules($index)
     {
         try {
 
-            $client = new \GuzzleHttp\Client();
-            foreach ($this->getRules() as $rule) {
+
+            foreach ($this->getRules() as $i => $rule) {
                 $list = [];
+                // only process the index passed. This is for cron job
+                if($index != $i){
+                    continue;
+                }
+
                 if ($rule['api_endpoint'] != '') {
+                    $client = new \GuzzleHttp\Client();
                     $response = $client->get($rule['api_endpoint']);
                     if ($response->getStatusCode() < 300) {
                         $list = json_decode($response->getBody(), true);
@@ -547,6 +559,8 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
                 }
 
                 $this->updateNotificationsProjectList($rule['notification_record_id'], $list);
+                // this loop will only process one rule at a time. This is for cron job
+                break;
             }
         } catch (GuzzleException $e) {
         } catch (\Exception $e) {
