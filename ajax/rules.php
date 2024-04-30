@@ -5,7 +5,8 @@
 
 
 try{
-    $module->executeNotificationsRules();
+    $index = filter_var($_GET['index'], FILTER_SANITIZE_NUMBER_INT);
+    $module->executeNotificationsRules($index);
 }catch (\Exception $e){
     $module->emError($e->getMessage());
     http_response_code(404);
