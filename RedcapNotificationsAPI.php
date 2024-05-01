@@ -118,11 +118,13 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
         // if pid/s defined  loop over  listed PID
         if ($record['note_project_id']) {
             $pids = preg_split('/\s*(,\s*|\n)\s*/', $record['note_project_id'], -1, PREG_SPLIT_NO_EMPTY);
-
+            $this->emDebug("pids");
+            $this->emDebug($pids);
             $excluded = preg_split('/\s*(,\s*|\n)\s*/', $record['project_exclusion'], -1, PREG_SPLIT_NO_EMPTY);
             // remove excluded projects
             $pids = array_diff($pids, $excluded);
-
+            $this->emDebug("pids after exclusion");
+            $this->emDebug($pids);
         } else {
             $allProjects = true;
         }
@@ -163,6 +165,14 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
 //            }
 
             list($allProjects, $pids, $userRole, $isDesignatedContact, $isProd) = $this->determineKeyVariabes($record);
+
+            $this->emDebug("Debug cron");
+            $this->emDebug($allProjects);
+            $this->emDebug($pids);
+            $this->emDebug($userRole);
+            $this->emDebug($isDesignatedContact);
+            $this->emDebug($isProd);
+            $this->emDebug("===========================");
 
             // if notifications for specific projects loop over
             if (!$allProjects) {
