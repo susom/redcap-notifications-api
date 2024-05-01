@@ -166,14 +166,6 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
 
             list($allProjects, $pids, $userRole, $isDesignatedContact, $isProd) = $this->determineKeyVariabes($record);
 
-            $this->emDebug("Debug cron");
-            $this->emDebug($allProjects);
-            $this->emDebug($pids);
-            $this->emDebug($userRole);
-            $this->emDebug($isDesignatedContact);
-            $this->emDebug($isProd);
-            $this->emDebug("===========================");
-
             // if notifications for specific projects loop over
             if (!$allProjects) {
                 foreach ($pids as $pid) {

@@ -43,9 +43,13 @@ class Redis implements CacheInterface
         if ($this->client->hexists(RedcapNotificationsAPI::REDIS_MAP_NAME, $notification_id)) {
             $location = $this->client->hget(RedcapNotificationsAPI::REDIS_MAP_NAME, $notification_id);
 
-            // Delete previous key and map entry
-            $this->client->hdel($location, [$notification_id]);
-            $this->client->hdel(RedcapNotificationsAPI::REDIS_MAP_NAME, [$notification_id]);
+            // delete only if key is the same as location. 
+            if ($location == $storage_key) {
+                // Delete previous key and map entry
+                $this->client->hdel($location, [$notification_id]);
+                $this->client->hdel(RedcapNotificationsAPI::REDIS_MAP_NAME, [$notification_id]);
+            }
+
         }
 
         //Add key as PID_[PROD/DEV]_[ROLE] as key, setting hash as notification ID
