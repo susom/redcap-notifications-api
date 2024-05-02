@@ -95,7 +95,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
 
     }
 
-    public function determineKeyVariabes($record)
+    public function determineKeyVariables($record)
     {
         $allProjects = false;
         $pids = null;
@@ -164,7 +164,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
 //                $allProjects = true;
 //            }
 
-            list($allProjects, $pids, $userRole, $isDesignatedContact, $isProd) = $this->determineKeyVariabes($record);
+            list($allProjects, $pids, $userRole, $isDesignatedContact, $isProd) = $this->determineKeyVariables($record);
 
             // if notifications for specific projects loop over
             if (!$allProjects) {
@@ -492,7 +492,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
                 if (time() > strtotime($expiryTime)) {
                     // get its current key.
                     $notificationId = $record[$project->table_pk];
-                    list($allProjects, $pids, $userRole, $isDesignatedContact, $isProd) = $this->determineKeyVariabes($record);
+                    list($allProjects, $pids, $userRole, $isDesignatedContact, $isProd) = $this->determineKeyVariables($record);
                     // if notifications for specific projects loop over
                     if (!$allProjects) {
                         foreach ($pids as $pid) {
