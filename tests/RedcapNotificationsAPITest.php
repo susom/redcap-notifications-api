@@ -5,7 +5,7 @@ namespace Stanford\RedcapNotificationsAPI;
 
 require_once __DIR__ . '/../../../redcap_connect.php';
 
-class RedcapNotificationsAPITest extends \ExternalModules\ModuleBaseTest
+final class RedcapNotificationsAPITest extends \ExternalModules\ModuleBaseTest
 {
 
     public function testGetClient()
