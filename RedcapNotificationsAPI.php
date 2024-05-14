@@ -559,9 +559,9 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
                     }
                 } else {
                     $this->emDebug("Process SQL query");
-                    $this->emDebug($rule['sql_query']);
                     $sql = sprintf($rule['sql_query']);
                     $q = db_query($sql);
+
                     while ($row = db_fetch_assoc($q)) {
                         $list[] = end($row);
                     }
