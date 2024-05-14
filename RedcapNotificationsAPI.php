@@ -516,6 +516,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
             $url = $this->getUrl('ajax/rules', true, true) . '&NOAUTH&pid=' . $this->getNotificationProjectId();
             $client = $this->getClient();
             $promises = [];
+            $this->emDebug("Start cron.");
             foreach ($this->getRules() as $index => $rule) {
                 $promises[$index] = $client->getAsync($url . '&index=' . $index);
 
@@ -528,9 +529,10 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
             $response = $e->getResponse();
             $responseBodyAsString = $response->getBody()->getContents();
             \REDCap::logEvent($responseBodyAsString, "", "", null, null, $this->getNotificationProjectId());
+            $this->emError($e->getMessage());
         } catch (\Exception $e) {
             \REDCap::logEvent($e->getMessage(), "", "", null, null, $this->getNotificationProjectId());
-
+            $this->emError($e->getMessage());
         }
     }
 
