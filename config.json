@@ -89,13 +89,13 @@
           "key": "api_endpoint",
           "name": "<b>URL to Endpoint to pull Project IDs list. </b><br/>",
           "required": false,
-          "type": "text"
+          "type": "textarea"
         },
         {
           "key": "sql_query",
           "name": "<b>SQL Query to pull list of Project IDs. </b><br/>",
           "required": false,
-          "type": "text"
+          "type": "textarea"
         }
       ]
     }
