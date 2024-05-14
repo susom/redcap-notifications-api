@@ -520,8 +520,10 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
                 $promises[$index] = $client->getAsync($url . '&index=' . $index);
 
             }
-            $responses = Promise\Utils::unwrap($promises);
+            $this->emDebug("Process Rules");
 
+            $responses = Promise\Utils::unwrap($promises);
+            $this->emDebug($responses);
         } catch (\GuzzleHttp\Exception\ClientException $e) {
             $response = $e->getResponse();
             $responseBodyAsString = $response->getBody()->getContents();
@@ -546,12 +548,16 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
 
                 if ($rule['api_endpoint'] != '') {
                     $client = new \GuzzleHttp\Client();
+                    $this->emDebug("Process API call");
+                    $this->emDebug($rule['api_endpoint']);
                     $response = $client->get($rule['api_endpoint']);
                     if ($response->getStatusCode() < 300) {
                         $list = json_decode($response->getBody(), true);
 
                     }
                 } else {
+                    $this->emDebug("Process SQL query");
+                    $this->emDebug($rule['sql_query']);
                     $sql = sprintf($rule['sql_query']);
                     $q = db_query($sql);
                     while ($row = db_fetch_assoc($q)) {
@@ -559,7 +565,8 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
                     }
                     // TODO verify Project IDs
                 }
-
+                $this->emDebug("Project list");
+                $this->emDebug($list);
                 $this->updateNotificationsProjectList($rule['notification_record_id'], $list);
                 // this loop will only process one rule at a time. This is for cron job
                 break;
