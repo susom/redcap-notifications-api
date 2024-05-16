@@ -562,6 +562,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
                 } else {
                     $this->emLog("Process SQL query");
                     $sql = sprintf($rule['sql_query']);
+                    $this->emLog("SQL query: " . $sql);
                     $q = db_query($sql);
                     $this->emLog('Success SQL query: ' . $q == false ? 'false' : 'true');
                     $this->emLog('Number of rows: '.  db_num_rows($q));
