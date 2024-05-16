@@ -170,8 +170,8 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
             if (!$allProjects) {
                 foreach ($pids as $pid) {
                     $key = self::generateKey($notificationId, false, $pid, $isProd, $userRole, $isDesignatedContact);
-                    $this->emDebug("Update Cache key for PID: " . $pid );
-                    $this->emDebug("New Key:" . $key);
+                    $this->emLog("Update Cache key for PID: " . $pid );
+                    $this->emLog("New Key:" . $key);
                     $this->getCacheClient()->setKey($key, json_encode($record));
                 }
             } else {
@@ -552,19 +552,19 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
 
                 if ($rule['api_endpoint'] != '') {
                     $client = new \GuzzleHttp\Client();
-                    $this->emDebug("Process API call");
-                    $this->emDebug($rule['api_endpoint']);
+                    $this->emLog("Process API call");
+                    $this->emLog($rule['api_endpoint']);
                     $response = $client->get($rule['api_endpoint']);
                     if ($response->getStatusCode() < 300) {
                         $list = json_decode($response->getBody(), true);
 
                     }
                 } else {
-                    $this->emDebug("Process SQL query");
+                    $this->emLog("Process SQL query");
                     $sql = sprintf($rule['sql_query']);
                     $q = db_query($sql);
-                    $this->emDebug('Success SQL query: ' . $q == false ? 'false' : 'true');
-                    $this->emDebug('Number of rows: '.  db_num_rows($q));
+                    $this->emLog('Success SQL query: ' . $q == false ? 'false' : 'true');
+                    $this->emLog('Number of rows: '.  db_num_rows($q));
                     while ($row = db_fetch_assoc($q)) {
                         $list[] = end($row);
                     }
@@ -572,8 +572,8 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
                 }
                 // remove duplicates
                 $list = array_unique($list);
-                $this->emDebug("Project list");
-                $this->emDebug($list);
+                $this->emLog("Project list");
+                $this->emLog($list);
                 $this->updateNotificationsProjectList($rule['notification_record_id'], $list);
                 // this loop will only process one rule at a time. This is for cron job
                 break;

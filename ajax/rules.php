@@ -6,7 +6,7 @@
 
 try{
     $index = filter_var($_GET['index'], FILTER_SANITIZE_NUMBER_INT);
-    $module->emDebug("Rule index: $index");
+    $module->emLog("Rule index: $index");
     $module->executeNotificationsRules($index);
 }catch (\Exception $e){
     $module->emError($e->getMessage());
