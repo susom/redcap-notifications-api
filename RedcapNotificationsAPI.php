@@ -572,7 +572,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
                     // TODO verify Project IDs
                 }
                 // remove duplicates
-                $list = array_unique($list);
+                $list = array_unique(is_null($list) ? array() : $list);
                 $this->emLog("Project list");
                 $this->emLog($list);
                 $this->updateNotificationsProjectList($rule['notification_record_id'], $list);
