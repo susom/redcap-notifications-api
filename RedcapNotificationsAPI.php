@@ -170,6 +170,8 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
             if (!$allProjects) {
                 foreach ($pids as $pid) {
                     $key = self::generateKey($notificationId, false, $pid, $isProd, $userRole, $isDesignatedContact);
+                    $this->emDebug("Update Cache key for PID: " . $pid );
+                    $this->emDebug("New Key:" . $key);
                     $this->getCacheClient()->setKey($key, json_encode($record));
                 }
             } else {
@@ -561,12 +563,15 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
                     $this->emDebug("Process SQL query");
                     $sql = sprintf($rule['sql_query']);
                     $q = db_query($sql);
-
+                    $this->emDebug('Success SQL query: ' . $q == false ? 'false' : 'true');
+                    $this->emDebug('Number of rows: '.  db_num_rows($q));
                     while ($row = db_fetch_assoc($q)) {
                         $list[] = end($row);
                     }
                     // TODO verify Project IDs
                 }
+                // remove duplicates
+                $list = array_unique($list);
                 $this->emDebug("Project list");
                 $this->emDebug($list);
                 $this->updateNotificationsProjectList($rule['notification_record_id'], $list);
