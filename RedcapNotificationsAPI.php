@@ -564,7 +564,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
                     $sql = sprintf($rule['sql_query']);
                     $this->emLog("SQL query: " . $sql);
                     $q = db_query($sql);
-                    $this->emLog('Success SQL query: ' . $q == false ? 'false' : 'true');
+                    $this->emLog('Success SQL query: ' . ($q == false ? 'false' : 'true'));
                     $this->emLog('Number of rows: '.  db_num_rows($q));
                     while ($row = db_fetch_assoc($q)) {
                         $list[] = end($row);
