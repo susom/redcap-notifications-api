@@ -166,12 +166,12 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
 
             list($allProjects, $pids, $userRole, $isDesignatedContact, $isProd) = $this->determineKeyVariables($record);
 
+            $this->emDebug("cacheNotification");
+
             // if notifications for specific projects loop over
             if (!$allProjects) {
                 foreach ($pids as $pid) {
                     $key = self::generateKey($notificationId, false, $pid, $isProd, $userRole, $isDesignatedContact);
-                    $this->emLog("Update Cache key for PID: " . $pid );
-                    $this->emLog("New Key:" . $key);
                     $this->getCacheClient()->setKey($key, json_encode($record));
                 }
             } else {
