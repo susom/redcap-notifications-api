@@ -580,11 +580,12 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
                 break;
             }
         } catch (GuzzleException $e) {
+            echo json_encode(array('status' => 'error', 'message' => $e->getMessage(), 'index' => $index));
         } catch (\Exception $e) {
-            echo $e->getMessage();
+            echo json_encode(array('status' => 'error', 'message' => $e->getMessage(), 'index' => $index));
         }
 
-        echo json_encode(array("success"));
+        echo json_encode(array('status' => 'success', 'index' => $index));
     }
 
     private function updateNotificationsProjectList($recordId, $list)
