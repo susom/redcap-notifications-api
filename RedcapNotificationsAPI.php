@@ -583,6 +583,8 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
         } catch (\Exception $e) {
             echo $e->getMessage();
         }
+
+        echo json_encode(array("success"));
     }
 
     private function updateNotificationsProjectList($recordId, $list)
