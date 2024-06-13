@@ -90,7 +90,12 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
         if (!empty($response['errors'])) {
             $this->emError("Could not update record with last update time " . json_encode($saveData));
         } else {
-            $this->cacheNotification($json[0]);
+            if($json[0]['note_push'] == "1"){
+                $this->cacheNotification($json[0]);
+            }else{
+                REDCap::logEvent("Notification $record was saved but not pushed to cache",);
+            }
+
         }
 
     }
