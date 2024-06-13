@@ -615,7 +615,11 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
             );
             $json = REDCap::getData($params);
             $json = json_decode($json, true);
-            $this->cacheNotification($json[0]);
+            if($json[0]['note_push'] == "1"){
+                $this->cacheNotification($json[0]);
+            }else{
+                REDCap::logEvent("Notification $recordId was saved but not pushed to cache",);
+            }
         }
     }
 
