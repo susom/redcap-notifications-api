@@ -96,6 +96,12 @@
           "name": "<b>SQL Query to pull list of Project IDs. </b><br/>",
           "required": false,
           "type": "textarea"
+        },
+        {
+          "key": "excluded_notification_record_id",
+          "name": "<b>Notification Record Id where PIDs will be excluded from this notification.</b><br/>",
+          "required": false,
+          "type": "text"
         }
       ]
     }

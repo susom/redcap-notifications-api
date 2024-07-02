@@ -580,7 +580,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
                 $list = array_unique(is_null($list) ? array() : $list);
                 $this->emLog("Project list");
                 $this->emLog($list);
-                $this->updateNotificationsProjectList($rule['notification_record_id'], $list);
+                $this->updateNotificationsProjectList($rule['notification_record_id'], $list, $rule['excluded_notification_record_id']);
                 // this loop will only process one rule at a time. This is for cron job
                 break;
             }
@@ -593,8 +593,20 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
         echo json_encode(array('status' => 'success', 'index' => $index));
     }
 
-    private function updateNotificationsProjectList($recordId, $list)
+    private function updateNotificationsProjectList($recordId, $list, $excludedRecordId = null)
     {
+
+        if($excludedRecordId){
+            $params = array(
+                "records" => [$excludedRecordId],
+                "return_format" => "json",
+                "project_id" => $this->getNotificationProjectId()
+            );
+            $response = REDCap::getData($params);
+            $excludedJson = json_decode($response, true);
+            // pids from this notification will be excluded for processed notification.
+            $data['project_exclusion'] = $excludedJson[0]['note_project_id'];
+        }
 
         $data[\REDCap::getRecordIdField()] = $recordId;
         $data['note_project_id'] = implode(',', $list);
