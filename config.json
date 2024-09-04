@@ -20,11 +20,7 @@
       "institution": "Stanford University"
     }
   ],
-  "framework-version": 9,
-  "permissions": [
-    "redcap_every_page_top",
-    "redcap_save_record"
-  ],
+  "framework-version": 14,
   "no-auth-pages": [
     "ajax/rules"
   ],
