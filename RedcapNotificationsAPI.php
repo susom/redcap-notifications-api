@@ -611,7 +611,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
         $data[\REDCap::getRecordIdField()] = $recordId;
         $data['note_project_id'] = implode(',', $list);
         $data['redcap_event_name'] = \REDCap::getEventNames(true, true, $this->getFirstEventId());
-        $response = \REDCap::saveData('json', json_encode(array($data)));
+        $response = \REDCap::saveData('json', json_encode(array($data)), 'overwrite');
         if (!empty($response['errors'])) {
             if (is_array($response['errors'])) {
                 throw new \Exception(implode(",", $response['errors']));
