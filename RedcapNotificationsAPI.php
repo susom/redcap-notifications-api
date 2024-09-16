@@ -90,10 +90,10 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
         if (!empty($response['errors'])) {
             $this->emError("Could not update record with last update time " . json_encode($saveData));
         } else {
-            if($json[0]['note_push'] == "1"){
+            if ($json[0]['note_push'] == "1") {
                 $this->cacheNotification($json[0]);
-            }else{
-                REDCap::logEvent("Notification $record was saved but not pushed to cache",);
+            } else {
+                REDCap::logEvent("Notification $record was saved but not pushed to cache");
             }
 
         }
@@ -135,6 +135,25 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
         }
 
         return array($allProjects, $pids, $userRole, $isDesignatedContact, $isProd);
+    }
+
+    /**
+     * this method will delete existing cache from notification record when pids list is updated.
+     * @param $record
+     * @param $list
+     * @return void
+     * @throws \Exception
+     */
+    public function deleteProjectsCache($record)
+    {
+        list($allProjects, $pids, $userRole, $isDesignatedContact, $isProd) = $this->determineKeyVariables($record);
+        $notificationId = $record[\REDCap::getRecordIdField()];
+        if (!$allProjects) {
+            foreach ($pids as $pid) {
+                $key = self::generateKey($notificationId, false, $pid, $isProd, $userRole, $isDesignatedContact);
+                $this->getCacheClient()->deleteKey($key);
+            }
+        }
     }
 
     /**
@@ -551,7 +570,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
             foreach ($this->getRules() as $i => $rule) {
                 $list = [];
                 // only process the index passed. This is for cron job
-                if($index != $i){
+                if ($index != $i) {
                     continue;
                 }
 
@@ -570,7 +589,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
                     $this->emLog("SQL query: " . $sql);
                     $q = db_query($sql);
                     $this->emLog('Success SQL query: ' . ($q == false ? 'false' : 'true'));
-                    $this->emLog('Number of rows: '.  db_num_rows($q));
+                    $this->emLog('Number of rows: ' . db_num_rows($q));
                     while ($row = db_fetch_assoc($q)) {
                         $list[] = end($row);
                     }
@@ -596,7 +615,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
     private function updateNotificationsProjectList($recordId, $list, $excludedRecordId = null)
     {
 
-        if($excludedRecordId){
+        if ($excludedRecordId) {
             $params = array(
                 "records" => [$excludedRecordId],
                 "return_format" => "json",
@@ -607,6 +626,16 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
             // pids from this notification will be excluded for processed notification.
             $data['project_exclusion'] = $excludedJson[0]['note_project_id'];
         }
+
+        // need to delete existing cached notification so we can create one ones.
+        $params = array(
+            "records" => [$recordId],
+            "return_format" => "json",
+            "project_id" => $this->getNotificationProjectId()
+        );
+        $response = REDCap::getData($params);
+        $oldRecord = json_decode($response, true);
+
 
         $data[\REDCap::getRecordIdField()] = $recordId;
         $data['note_project_id'] = implode(',', $list);
@@ -627,10 +656,11 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
             );
             $json = REDCap::getData($params);
             $json = json_decode($json, true);
-            if($json[0]['note_push'] == "1"){
+            if ($json[0]['note_push'] == "1") {
+                $this->deleteProjectsCache($oldRecord[0]);
                 $this->cacheNotification($json[0]);
-            }else{
-                REDCap::logEvent("Notification $recordId was saved but not pushed to cache",);
+            } else {
+                REDCap::logEvent("Notification $recordId was saved but not pushed to cache");
             }
         }
     }
