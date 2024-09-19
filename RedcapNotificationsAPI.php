@@ -155,6 +155,15 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
                 $this->getCacheClient()->deleteKey($key);
             }
         }
+
+        // delete cache for excluded projects
+        if(!empty($record['project_exclusion'])){
+            $e_pids = explode(",", $record['project_exclusion']);
+            foreach ($e_pids as $e_pid) {
+                $key = self::generateKey($notificationId, false, $e_pid, $isProd, $userRole, $isDesignatedContact);
+                $this->getCacheClient()->deleteKey($key);
+            }
+        }
     }
 
     /**
