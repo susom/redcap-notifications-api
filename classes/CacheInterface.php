@@ -20,4 +20,6 @@ interface CacheInterface
 
     public function expireKey($key);
 
+    public function getNotificationRecord($notification_id);
+
 }

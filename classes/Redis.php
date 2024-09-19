@@ -79,6 +79,12 @@ class Redis implements CacheInterface
         return $this->client->hget($storage_key, $notification_id);
     }
 
+
+    public function getNotificationRecord($notification_id){
+        $location = $this->client->hget(RedcapNotificationsAPI::REDIS_MAP_NAME, $notification_id);
+        return $this->client->hget($location, $notification_id);
+    }
+
     /**
      * Grabs all values in redis for a given hash
      * Expecting key in the format PID_[PROD/DEV]_ROLE

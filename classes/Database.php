@@ -32,6 +32,13 @@ class Database implements CacheInterface
         db_query(sprintf("select RELEASE_LOCK(%s)", db_escape($key)));
     }
 
+    public function getNotificationRecord($notification_id)
+    {
+        $sql = sprintf("SELECT * from redcap_external_modules_log WHERE record LIKE '%%_%s' LIMIT 1", db_escape($notification_id));
+        $q = db_query($sql);
+        $row = db_fetch_assoc($q);
+        return db_num_rows($q) > 0 ? $row['message'] : [];
+    }
     private function isKeyExists($notification_id)
     {
         $sql = sprintf("SELECT log_id from redcap_external_modules_log WHERE record LIKE '%%_%s'", db_escape($notification_id));

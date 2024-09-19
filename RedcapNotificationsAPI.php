@@ -42,7 +42,6 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
     private $notificationProjectId = null;
 
     private $client = null;
-
     /**
      *  Using this function to update the [note_last_update_time] field of a notification
      *  record so we can tell when it's been changed in the REDCap Notifications Project.
@@ -72,13 +71,6 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
         $json = REDCap::getData($params);
         $json = json_decode($json, true);
 
-        if (!empty($response) && $response = current($response)) {
-            $this->emDebug("forcer refresh get data?", $response);
-            if ($response["force_refresh___1"] == "1") {
-                $this->setForceRefreshSetting($record, $last_update_ts);
-            }
-        }
-
         // Save the last record update date/time
         $saveData = array(
             array(
@@ -91,7 +83,9 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
             $this->emError("Could not update record with last update time " . json_encode($saveData));
         } else {
             if ($json[0]['note_push'] == "1") {
-                $this->deleteProjectsCache($json[0]);
+                $oldRecord = $this->getCacheClient()->getNotificationRecord($record);
+                $oldRecord = json_decode($oldRecord, true);
+                $this->deleteProjectsCache($oldRecord);
                 $this->cacheNotification($json[0]);
             } else {
                 REDCap::logEvent("Notification $record was saved but not pushed to cache");
@@ -154,10 +148,13 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
                 $key = self::generateKey($notificationId, false, $pid, $isProd, $userRole, $isDesignatedContact);
                 $this->getCacheClient()->deleteKey($key);
             }
+        }else{
+            $key = self::generateKey($notificationId, true, null, $isProd, $userRole, $isDesignatedContact);
+            $this->getCacheClient()->deleteKey($key);
         }
 
         // delete cache for excluded projects
-        if(!empty($record['project_exclusion'])){
+        if (!empty($record['project_exclusion'])) {
             $e_pids = explode(",", $record['project_exclusion']);
             foreach ($e_pids as $e_pid) {
                 $key = self::generateKey($notificationId, false, $e_pid, $isProd, $userRole, $isDesignatedContact);
@@ -209,7 +206,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
                     $this->getCacheClient()->setKey($key, json_encode($record));
                 }
             } else {
-                $key = self::generateKey($notificationId, true, $pid, $isProd, $userRole, $isDesignatedContact);
+                $key = self::generateKey($notificationId, true, null, $isProd, $userRole, $isDesignatedContact);
                 $this->getCacheClient()->setKey($key, json_encode($record));
             }
         } catch (\Exception $e) {
@@ -318,12 +315,15 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
         $keys = (new RedcapNotificationsAPI)->getGlobalKeys($projectStatus, $isAdmin, $isDesignatedContact);
 
         if ($pid) { // Fetch all project specific keys
-            $keys[] = $pid . self::getDelimiter() . self::SERVER_BOTH . self::getDelimiter() . self::ALLUSERS;
 
             $projectPrefix = $projectStatus ? self::PROD : self::DEV;
+            if (defined('USERID') and USERID != '[survey respondent]') {
+                $keys[] = $pid . self::getDelimiter() . self::SERVER_BOTH . self::getDelimiter() . self::ALLUSERS;
 
-            // Grab prod/dev all users key
-            $keys[] = $pid . self::getDelimiter() . $projectPrefix . self::getDelimiter() . self::ALLUSERS;
+
+                // Grab prod/dev all users key
+                $keys[] = $pid . self::getDelimiter() . $projectPrefix . self::getDelimiter() . self::ALLUSERS;
+            }
 
             // Get key by admin or dc role
             if ($isAdmin) {
@@ -537,7 +537,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
                             $this->getCacheClient()->deleteExpiredDismissedKey($key);
                         }
                     } else {
-                        $key = self::generateKey($notificationId, true, $pid, $isProd, $userRole, $isDesignatedContact);
+                        $key = self::generateKey($notificationId, true, null, $isProd, $userRole, $isDesignatedContact);
                         $this->getCacheClient()->deleteKey($key);
                         $this->getCacheClient()->deleteExpiredDismissedKey($key);
                     }
