@@ -288,7 +288,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
                     $value .= ',' . $temp;
                 }
                 $this->getCacheClient()->setKey($dismissKey, $value);
-
+                \REDCap::logEvent(USERID . ' dismiss notification ' . $key);
                 return true;
             } else {
                 throw new \Exception("User is not logged in! Failed to dismiss notification $key");
