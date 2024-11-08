@@ -183,7 +183,7 @@
     },
     {
       "cron_name": "execute_notifications_rules",
-      "cron_description": "A Hourly cron to check Notifications rules and update Project IDs list for each rule. ",
+      "cron_description": "A daily cron to check Notifications rules and update Project IDs list for each rule. ",
       "method": "cronNotificationsRules",
       "cron_frequency": "86400",
       "cron_max_run_time": "3600"
