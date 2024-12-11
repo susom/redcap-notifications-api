@@ -88,6 +88,12 @@
           "type": "textarea"
         },
         {
+          "key": "api_endpoint_body",
+          "name": "<b>Request body (has to be a valid JSON Object). </b><br/>",
+          "required": false,
+          "type": "textarea"
+        },
+        {
           "key": "sql_query",
           "name": "<b>SQL Query to pull list of Project IDs. </b><br/>",
           "required": false,

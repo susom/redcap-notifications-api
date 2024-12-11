@@ -42,6 +42,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
     private $notificationProjectId = null;
 
     private $client = null;
+
     /**
      *  Using this function to update the [note_last_update_time] field of a notification
      *  record so we can tell when it's been changed in the REDCap Notifications Project.
@@ -148,7 +149,7 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
                 $key = self::generateKey($notificationId, false, $pid, $isProd, $userRole, $isDesignatedContact);
                 $this->getCacheClient()->deleteKey($key);
             }
-        }else{
+        } else {
             $key = self::generateKey($notificationId, true, null, $isProd, $userRole, $isDesignatedContact);
             $this->getCacheClient()->deleteKey($key);
         }
@@ -586,9 +587,18 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
 
                 if ($rule['api_endpoint'] != '') {
                     $client = new \GuzzleHttp\Client();
+
+                    $headers = [
+                        'Content-Type' => 'application/json'
+                    ];
+                    $body = $rule['api_endpoint_body'];
+
                     $this->emLog("Process API call");
                     $this->emLog($rule['api_endpoint']);
-                    $response = $client->get($rule['api_endpoint']);
+                    $response = $client->post($rule['api_endpoint'], [
+                        'body' => $body,
+                        'headers' => $headers,
+                    ]);
                     if ($response->getStatusCode() < 300) {
                         $list = json_decode($response->getBody(), true);
 
