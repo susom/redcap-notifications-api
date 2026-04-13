@@ -76,6 +76,23 @@
       "repeatable": true,
       "sub_settings": [
         {
+          "key": "notification_enabled",
+          "name": "Is this notification rule active?",
+          "required": true,
+          "type": "radio",
+          "default": "true",
+          "choices":[
+            {
+              "name" : "Yes",
+              "value" : "true"
+            },
+            {
+              "name" : "No",
+              "value" : "false"
+            }
+          ]
+        },
+        {
           "key": "notification_record_id",
           "name": "<b>Notification Record  Id where Project Ids list will be saved.</b><br/>",
           "required": false,

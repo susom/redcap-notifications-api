@@ -585,6 +585,11 @@ class RedcapNotificationsAPI extends \ExternalModules\AbstractExternalModule
                     continue;
                 }
 
+                // if notification rule is not enabled stop processing and exit the loop
+                if($rule['notification_enabled'] == 'false'){
+                    break;
+                }
+
                 if ($rule['api_endpoint'] != '') {
                     $client = new \GuzzleHttp\Client();
 
